@@ -98,10 +98,42 @@ async function fetchViolations() {
                 <td class="p-4 font-bold text-slate-700">${v.nisn}</td>
                 <td class="p-4"><span class="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-md text-xs font-bold">${v.student_class}</span></td>
                 <td class="p-4"><span class="bg-red-100 text-red-800 px-2.5 py-1 rounded-md text-xs font-bold">${v.violation_type}</span></td>
+                <td class="p-4">
+                    <button onclick="deleteViolation(${v.id})" class="text-xs bg-red-50 text-red-600 font-semibold px-3 py-1.5 rounded-lg hover:bg-red-100 transition">
+                        Hapus
+                    </button>
+                </td>
             </tr>
         `).join('');
     } else {
-        tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-400">Belum ada pelanggaran terdeteksi</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400">Belum ada pelanggaran terdeteksi</td></tr>`;
+    }
+}
+
+// Hapus Pelanggaran Individual
+async function deleteViolation(id) {
+    if (confirm('Hapus log pelanggaran ini?')) {
+        const client = getSupabase();
+        if (!client) return;
+        await client.from('violations').delete().eq('id', id);
+        fetchViolations();
+    }
+}
+
+// Hapus Semua Pelanggaran (Massal)
+async function deleteAllViolations() {
+    if (confirm('Apakah Anda yakin ingin MENGHAPUS SEMUA log pelanggaran?')) {
+        const client = getSupabase();
+        if (!client) return;
+        
+        // Menghapus seluruh baris data di tabel violations
+        const { error } = await client.from('violations').delete().neq('id', 0);
+        if (!error) {
+            alert('Semua data pelanggaran berhasil dibersihkan.');
+            fetchViolations();
+        } else {
+            alert('Gagal menghapus data: ' + error.message);
+        }
     }
 }
 
@@ -110,8 +142,71 @@ function subscribeViolations() {
     if (!client) return;
 
     client.channel('realtime:violations')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'violations' }, () => fetchViolations())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'violations' }, () => fetchViolations())
         .subscribe();
+}
+
+// ==========================================
+// 4. RIWAYAT PENGERJAAN SISWA (DENGAN HAPUS INDIVIDUAL & MASSAL)
+// ==========================================
+async function fetchHistory() {
+    const client = getSupabase();
+    if (!client) return;
+
+    const { data } = await client.from('submissions').select('*, exams(subject_name)').order('created_at', { ascending: false });
+    const tbody = document.getElementById('historyTableBody');
+    if (!tbody) return;
+
+    if (data && data.length > 0) {
+        tbody.innerHTML = data.map(h => `
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                <td class="p-4 font-mono font-bold text-slate-700">${h.nisn}</td>
+                <td class="p-4 font-semibold">${h.exams?.subject_name || 'Ujian CBT'}</td>
+                <td class="p-4 font-bold text-center">${h.attempt_count} x</td>
+                <td class="p-4">
+                    <span class="px-2.5 py-1 rounded-full text-xs font-bold ${h.is_allowed_retest ? 'bg-blue-100 text-blue-700' : 'bg-rose-100 text-rose-700'}">
+                        ${h.is_allowed_retest ? 'Diizinkan Ulang' : 'Terkunci (Selesai)'}
+                    </span>
+                </td>
+                <td class="p-4 space-x-2">
+                    <button onclick="toggleRetestPermission(${h.id}, ${!h.is_allowed_retest})" class="text-xs bg-slate-800 hover:bg-slate-900 text-white font-semibold px-3 py-1.5 rounded-lg transition">
+                        ${h.is_allowed_retest ? 'Kunci Akses' : 'Beri Izin Ulang'}
+                    </button>
+                    <button onclick="deleteSubmission(${h.id})" class="text-xs bg-red-50 text-red-600 font-semibold px-3 py-1.5 rounded-lg hover:bg-red-100 transition">
+                        Hapus
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    } else {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400">Belum ada riwayat pengerjaan siswa</td></tr>`;
+    }
+}
+
+// Hapus Riwayat Pengerjaan Individual
+async function deleteSubmission(id) {
+    if (confirm('Hapus riwayat pengerjaan siswa ini? Siswa akan dapat mengerjakan ulang dari awal.')) {
+        const client = getSupabase();
+        if (!client) return;
+        await client.from('submissions').delete().eq('id', id);
+        fetchHistory();
+    }
+}
+
+// Hapus Semua Riwayat Pengerjaan (Massal)
+async function deleteAllSubmissions() {
+    if (confirm('Apakah Anda yakin ingin MENGHAPUS SEMUA riwayat pengerjaan siswa?')) {
+        const client = getSupabase();
+        if (!client) return;
+
+        const { error } = await client.from('submissions').delete().neq('id', 0);
+        if (!error) {
+            alert('Semua riwayat pengerjaan berhasil dibersihkan.');
+            fetchHistory();
+        } else {
+            alert('Gagal menghapus data: ' + error.message);
+        }
+    }
 }
 
 // ==========================================
