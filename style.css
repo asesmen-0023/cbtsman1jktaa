@@ -1,0 +1,28 @@
+/* Custom Scrollbar untuk Tabel */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Animasi highlight saat ada baris pelanggaran baru masuk */
+@keyframes highlightRow {
+    0% { background-color: #fecaca; }
+    100% { background-color: transparent; }
+}
+
+.new-violation-row {
+    animation: highlightRow 2s ease-out;
+}
