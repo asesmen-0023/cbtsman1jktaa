@@ -56,27 +56,36 @@
         <main class="flex-1 p-6 md:p-10 overflow-y-auto">
             
             <!-- TAB 1: LIVE MONITORING -->
-            <section id="tab-monitoring" class="tab-content">
-                <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-2xl font-bold">Catatan Pelanggaran</h2>
-                    <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1.5 rounded-full">Live Connected</span>
-                </div>
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <table class="w-full text-left border-collapse text-sm">
-                        <thead class="bg-slate-50 border-b border-slate-200 text-slate-500">
-                            <tr>
-                                <th class="p-4 font-bold">Waktu</th>
-                                <th class="p-4 font-bold">NISN</th>
-                                <th class="p-4 font-bold">Kelas</th>
-                                <th class="p-4 font-bold">Jenis Pelanggaran</th>
-                            </tr>
-                        </thead>
-                        <tbody id="violationTableBody">
-                            <tr><td colspan="4" class="p-6 text-center text-slate-400">Memuat data...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+<section id="tab-monitoring" class="tab-content">
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h2 class="text-2xl font-bold">Real-time Monitoring Pelanggaran</h2>
+            <p class="text-xs text-slate-500">Laporan siswa yang keluar/ditinggalkan dari aplikasi CBT</p>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="deleteAllViolations()" class="bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 text-xs font-bold px-3.5 py-2 rounded-xl transition">
+                🗑️ Hapus Semua Pelanggaran
+            </button>
+            <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1.5 rounded-full">Live Connected</span>
+        </div>
+    </div>
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <table class="w-full text-left border-collapse text-sm">
+            <thead class="bg-slate-50 border-b border-slate-200 text-slate-500">
+                <tr>
+                    <th class="p-4 font-bold">Waktu</th>
+                    <th class="p-4 font-bold">NISN</th>
+                    <th class="p-4 font-bold">Kelas</th>
+                    <th class="p-4 font-bold">Jenis Pelanggaran</th>
+                    <th class="p-4 font-bold">Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="violationTableBody">
+                <tr><td colspan="5" class="p-6 text-center text-slate-400">Memuat data...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
 
             <!-- TAB 2: MANAJEMEN SOAL -->
             <section id="tab-exams" class="tab-content hidden">
@@ -167,23 +176,31 @@
             </section>
 
             <!-- TAB 4: RIWAYAT PENGERJAAN -->
-            <section id="tab-history" class="tab-content hidden">
-                <h2 class="text-2xl font-bold mb-6">Pencatatan Pengerjaan & Izin Re-test</h2>
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <table class="w-full text-left border-collapse text-sm">
-                        <thead class="bg-slate-50 border-b border-slate-200 text-slate-500">
-                            <tr>
-                                <th class="p-4 font-bold">NISN</th>
-                                <th class="p-4 font-bold">Ujian</th>
-                                <th class="p-4 font-bold text-center">Jumlah Pengerjaan</th>
-                                <th class="p-4 font-bold">Status Akses Ulang</th>
-                                <th class="p-4 font-bold">Aksi Izin Admin</th>
-                            </tr>
-                        </thead>
-                        <tbody id="historyTableBody"></tbody>
-                    </table>
-                </div>
-            </section>
+<section id="tab-history" class="tab-content hidden">
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h2 class="text-2xl font-bold">Pencatatan Pengerjaan & Izin Re-test</h2>
+            <p class="text-xs text-slate-500">Riwayat percobaan pengerjaan ujian oleh siswa</p>
+        </div>
+        <button onclick="deleteAllSubmissions()" class="bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 text-xs font-bold px-3.5 py-2 rounded-xl transition">
+            🗑️ Hapus Semua Riwayat
+        </button>
+    </div>
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <table class="w-full text-left border-collapse text-sm">
+            <thead class="bg-slate-50 border-b border-slate-200 text-slate-500">
+                <tr>
+                    <th class="p-4 font-bold">NISN</th>
+                    <th class="p-4 font-bold">Ujian</th>
+                    <th class="p-4 font-bold text-center">Jumlah Pengerjaan</th>
+                    <th class="p-4 font-bold">Status Akses Ulang</th>
+                    <th class="p-4 font-bold">Aksi Admin</th>
+                </tr>
+            </thead>
+            <tbody id="historyTableBody"></tbody>
+        </table>
+    </div>
+</section>
 
         </main>
     </div>
