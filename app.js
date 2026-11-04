@@ -213,26 +213,62 @@ async function saveGlobalSettings() {
 }
 
 // ==========================================
-// 1. MONITORING PELANGGARAN
+// 1. MONITORING PELANGGARAN (DI-GROUPING PER NISN)
 // ==========================================
 async function fetchViolations() {
     const client = getSupabase();
     if (!client) return;
 
-    const { data } = await client.from('violations').select('*').order('created_at', { ascending: false });
+    // Ambil seluruh data pelanggaran terurut dari yang paling baru
+    const { data, error } = await client
+        .from('violations')
+        .select('*')
+        .order('created_at', { ascending: false });
+
     const tbody = document.getElementById('violationTableBody');
     if (!tbody) return;
 
-    if (data && data.length > 0) {
-        tbody.innerHTML = data.map(v => `
+    if (!error && data && data.length > 0) {
+        // Kelompokkan data pelanggaran berdasarkan NISN
+        const groupedViolations = {};
+
+        data.forEach(v => {
+            if (!groupedViolations[v.nisn]) {
+                groupedViolations[v.nisn] = {
+                    nisn: v.nisn,
+                    student_class: v.student_class,
+                    last_violation_type: v.violation_type,
+                    last_time: v.created_at,
+                    count: 1,
+                    ids: [v.id] // Menyimpan array ID log pelanggaran milik siswa ini
+                };
+            } else {
+                groupedViolations[v.nisn].count += 1;
+                groupedViolations[v.nisn].ids.push(v.id);
+            }
+        });
+
+        // Render data yang sudah di-grouping ke dalam tabel HTML
+        tbody.innerHTML = Object.values(groupedViolations).map(v => `
             <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-                <td class="p-4 font-mono text-xs text-slate-500">${new Date(v.created_at).toLocaleTimeString('id-ID')} WIB</td>
+                <td class="p-4 font-mono text-xs text-slate-500">
+                    ${new Date(v.last_time).toLocaleTimeString('id-ID')} WIB
+                </td>
                 <td class="p-4 font-bold text-slate-700">${v.nisn}</td>
-                <td class="p-4"><span class="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-md text-xs font-bold">${v.student_class}</span></td>
-                <td class="p-4"><span class="bg-red-100 text-red-800 px-2.5 py-1 rounded-md text-xs font-bold">${v.violation_type}</span></td>
                 <td class="p-4">
-                    <button onclick="deleteViolation(${v.id})" class="text-xs bg-red-50 text-red-600 font-semibold px-3 py-1.5 rounded-lg hover:bg-red-100 transition">
-                        Hapus
+                    <span class="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-md text-xs font-bold">${v.student_class}</span>
+                </td>
+                <td class="p-4">
+                    <span class="bg-red-100 text-red-800 px-2.5 py-1 rounded-md text-xs font-bold me-2">
+                        ${v.last_violation_type}
+                    </span>
+                    <span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-xs font-bold">
+                        ${v.count}x Pelanggaran
+                    </span>
+                </td>
+                <td class="p-4">
+                    <button onclick='deleteGroupedViolations(${JSON.stringify(v.ids)}, "${v.nisn}")' class="text-xs bg-red-50 text-red-600 font-semibold px-3 py-1.5 rounded-lg hover:bg-red-100 transition">
+                        Reset Pelanggaran
                     </button>
                 </td>
             </tr>
@@ -242,17 +278,29 @@ async function fetchViolations() {
     }
 }
 
-async function deleteViolation(id) {
-    showModernConfirm('Penghapusan log pelanggaran ini bersifat permanen.', 'Hapus Log Pelanggaran', async () => {
-        const client = getSupabase();
-        if (!client) return;
-        await client.from('violations').delete().eq('id', id);
-        fetchViolations();
-    });
+// Handler Hapus Seluruh Log Pelanggaran untuk 1 Siswa
+async function deleteGroupedViolations(ids, nisn) {
+    showModernConfirm(
+        `Apakah Anda yakin ingin MENGHAPUS SEMUA (${ids.length}) log pelanggaran untuk siswa dengan NISN: ${nisn}?`,
+        'Reset Pelanggaran Siswa',
+        async () => {
+            const client = getSupabase();
+            if (!client) return;
+
+            const { error } = await client.from('violations').delete().in('id', ids);
+            if (!error) {
+                showModernAlert(`Log pelanggaran siswa ${nisn} berhasil dibersihkan!`, 'Berhasil', 'success');
+                fetchViolations();
+            } else {
+                showModernAlert('Gagal menghapus data: ' + error.message, 'Gagal', 'error');
+            }
+        }
+    );
 }
 
+// Handler Hapus Masal Semua Pelanggaran di Database
 async function deleteAllViolations() {
-    showModernConfirm('Apakah Anda yakin ingin MENGHAPUS SEMUA log pelanggaran terdeteksi?', 'Hapus Masal Pelanggaran', async () => {
+    showModernConfirm('Apakah Anda yakin ingin MENGHAPUS SEMUA log pelanggaran terdeteksi dari seluruh siswa?', 'Hapus Masal Pelanggaran', async () => {
         const client = getSupabase();
         if (!client) return;
         
@@ -266,6 +314,7 @@ async function deleteAllViolations() {
     });
 }
 
+// Realtime Listener Supabase
 function subscribeViolations() {
     const client = getSupabase();
     if (!client) return;
@@ -274,7 +323,6 @@ function subscribeViolations() {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'violations' }, () => fetchViolations())
         .subscribe();
 }
-
 // ==========================================
 // 2. MANAJEMEN SOAL
 // ==========================================
