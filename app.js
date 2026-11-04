@@ -504,3 +504,44 @@ async function toggleRetestPermission(id, newAllowed) {
 }
 
 document.addEventListener('DOMContentLoaded', checkAuth);
+// Memuat Pengaturan Global saat Dashboard dibuka
+async function fetchGlobalSettings() {
+    const client = getSupabase();
+    if (!client) return;
+
+    const { data } = await client.from('app_settings').select('*').eq('id', 1).maybeSingle();
+    if (data) {
+        document.getElementById('globalEnterPassword').value = data.enter_password || '12345';
+        document.getElementById('globalExitPassword').value = data.exit_password || '123456';
+        document.getElementById('globalBrightness').value = data.screen_brightness || 100;
+        document.getElementById('globalVolume').value = data.sound_volume || 100;
+    }
+}
+
+// Menyimpan Pengaturan Global ke Supabase
+async function saveGlobalSettings() {
+    const client = getSupabase();
+    if (!client) return;
+
+    const enter_password = document.getElementById('globalEnterPassword').value.trim() || '12345';
+    const exit_password = document.getElementById('globalExitPassword').value.trim() || '123456';
+    const screen_brightness = parseInt(document.getElementById('globalBrightness').value) || 100;
+    const sound_volume = parseInt(document.getElementById('globalVolume').value) || 100;
+
+    const { error } = await client.from('app_settings').upsert({
+        id: 1,
+        enter_password,
+        exit_password,
+        screen_brightness,
+        sound_volume,
+        updated_at: new Date()
+    });
+
+    if (!error) {
+        alert('Pengaturan Global CBT Berhasil Diperbarui!');
+    } else {
+        alert('Gagal menyimpan pengaturan: ' + error.message);
+    }
+}
+
+// Panggil fetchGlobalSettings() di dalam initDashboard()
