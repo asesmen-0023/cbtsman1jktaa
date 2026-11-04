@@ -31,6 +31,36 @@
         </div>
     </div>
 
+    <!-- TAB MANAJEMEN SOAL ATAU HEADER UTAMA DASHBOARD -->
+<div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8">
+    <div class="flex items-center justify-between mb-4">
+        <div>
+            <h3 class="font-bold text-slate-800 text-lg">⚙️ Pengaturan Global Ujian & Kiosk</h3>
+            <p class="text-xs text-slate-500">Berlaku terpusat untuk seluruh mata pelajaran dan jenjang kelas</p>
+        </div>
+        <button onclick="saveGlobalSettings()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition">
+            Simpan Pengaturan Global
+        </button>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Password Masuk Ujian</label>
+            <input type="text" id="globalEnterPassword" class="w-full border p-2.5 rounded-xl text-sm font-mono" placeholder="12345">
+        </div>
+        <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Password Keluar / Proktor</label>
+            <input type="text" id="globalExitPassword" class="w-full border p-2.5 rounded-xl text-sm font-mono" placeholder="123456">
+        </div>
+        <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Kecerahan Layar (%)</label>
+            <input type="number" id="globalBrightness" min="10" max="100" class="w-full border p-2.5 rounded-xl text-sm" placeholder="100">
+        </div>
+        <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Volume Suara (%)</label>
+            <input type="number" id="globalVolume" min="0" max="100" class="w-full border p-2.5 rounded-xl text-sm" placeholder="100">
+        </div>
+    </div>
+</div>
     <!-- MAIN DASHBOARD -->
     <div id="dashboardApp" class="hidden min-h-screen flex flex-col md:flex-row">
         <!-- Sidebar -->
