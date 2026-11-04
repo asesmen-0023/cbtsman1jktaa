@@ -3,184 +3,255 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CBT SMAN 1 Jakarta</title>
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <title>CBT - SMAN 1 Jakarta</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="style.css">
+    <!-- Library SheetJS untuk baca file Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="supabase-config.js"></script>
 </head>
-<body class="bg-slate-50 font-sans antialiased text-slate-800">
+<body class="bg-slate-100 font-sans text-slate-800">
 
-    <!-- OVERLAY LOGIN ADMIN -->
-    <div id="loginModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <!-- LOGIN MODAL -->
+    <div id="loginModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md border border-slate-100">
-            <div class="text-center mb-6">
-                <img src="favicon.ico" alt="Logo" class="w-16 h-16 mx-auto mb-3 object-contain">
-                <h2 class="text-2xl font-bold text-slate-800">Admin CBT</h2>
-                <p class="text-sm text-slate-500">SMAN 1 Jakarta</p>
-            </div>
+            <h2 class="text-2xl font-black text-slate-800 mb-1">CBT Panel</h2>
+            <p class="text-xs text-slate-500 mb-6">SMAN 1 Jakarta</p>
             <form id="adminLoginForm" class="space-y-4">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Username Admin</label>
-                    <input type="text" id="adminUser" placeholder="Masukkan username" class="w-full border border-slate-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Username</label>
+                    <input type="text" id="adminUser" class="w-full border p-3 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none" required>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Password</label>
-                    <input type="password" id="adminPass" placeholder="••••••••" class="w-full border border-slate-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Password</label>
+                    <input type="password" id="adminPass" class="w-full border p-3 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none" required>
                 </div>
-                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold p-3 rounded-xl transition shadow-lg shadow-blue-500/30">
-                    Masuk Ke Dashboard
-                </button>
+                <button type="submit" class="w-full bg-blue-600 text-white font-bold p-3 rounded-xl hover:bg-blue-700 transition">Masuk Panel</button>
             </form>
         </div>
     </div>
 
-    <!-- MAIN DASHBOARD LAYOUT -->
+    <!-- MAIN DASHBOARD -->
     <div id="dashboardApp" class="hidden min-h-screen flex flex-col md:flex-row">
-        
-        <!-- SIDEBAR -->
-        <aside class="w-full md:w-64 bg-slate-900 text-slate-300 flex-shrink-0">
-            <div class="p-5 border-b border-slate-800 flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <img src="favicon.ico" class="w-8 h-8 object-contain">
-                    <span class="font-bold text-white text-lg">CBT Panel</span>
+        <!-- Sidebar -->
+        <aside class="w-full md:w-64 bg-slate-900 text-white p-6 flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between mb-8">
+                    <h1 class="font-black text-lg">CBT Panel</h1>
+                    <button id="logoutBtn" class="text-xs bg-rose-600 hover:bg-rose-700 px-3 py-1.5 rounded-lg font-bold">Logout</button>
                 </div>
-                <button id="logoutBtn" class="text-xs bg-red-500/20 text-red-400 px-2.5 py-1 rounded-lg hover:bg-red-500/30">Logout</button>
+                <nav class="space-y-2">
+                    <button onclick="switchTab('monitoring')" id="nav-monitoring" class="nav-btn w-full text-left p-3 rounded-xl text-sm font-semibold hover:bg-slate-800 transition active">📡 Live Monitoring</button>
+                    <button onclick="switchTab('exams')" id="nav-exams" class="nav-btn w-full text-left p-3 rounded-xl text-sm font-semibold hover:bg-slate-800 transition">📝 Manajemen Soal</button>
+                    <button onclick="switchTab('students')" id="nav-students" class="nav-btn w-full text-left p-3 rounded-xl text-sm font-semibold hover:bg-slate-800 transition">🎓 Database Siswa</button>
+                    <button onclick="switchTab('history')" id="nav-history" class="nav-btn w-full text-left p-3 rounded-xl text-sm font-semibold hover:bg-slate-800 transition">📊 Riwayat Pengerjaan</button>
+                </nav>
             </div>
-            <nav class="p-4 space-y-1">
-                <button onclick="switchTab('monitoring')" id="nav-monitoring" class="nav-btn active">🚨 Live Monitoring</button>
-                <button onclick="switchTab('exams')" id="nav-exams" class="nav-btn">📚 Manajemen Soal</button>
-                <button onclick="switchTab('students')" id="nav-students" class="nav-btn">🎓 Database Siswa</button>
-                <button onclick="switchTab('history')" id="nav-history" class="nav-btn">📊 Riwayat Pengerjaan</button>
-            </nav>
+            <div class="text-xs text-slate-500 pt-6 border-t border-slate-800">
+                SMAN 1 Jakarta &copy; 2026
+            </div>
         </aside>
 
-        <!-- CONTENT AREA -->
-        <main class="flex-1 p-4 md:p-8 overflow-y-auto">
-
-            <!-- TAB 1: MONITORING -->
+        <!-- Main Content -->
+        <main class="flex-1 p-6 md:p-10 overflow-y-auto">
+            
+            <!-- TAB 1: LIVE MONITORING -->
             <section id="tab-monitoring" class="tab-content">
-                <div class="flex justify-between items-center mb-6">
-                    <div>
-                        <h1 class="text-2xl font-bold text-slate-800">Real-time Monitoring Pelanggaran</h1>
-                        <p class="text-sm text-slate-500">Pantau kecurangan siswa secara langsung</p>
-                    </div>
-                    <span class="inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full text-xs font-semibold">
-                        <span class="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span> Live Connected
-                    </span>
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold">Catatan Pelanggaran</h2>
+                    <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1.5 rounded-full">Live Connected</span>
                 </div>
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm">
-                            <thead class="bg-slate-50 border-b border-slate-200 text-slate-500">
-                                <tr>
-                                    <th class="p-4">Waktu</th>
-                                    <th class="p-4">NISN</th>
-                                    <th class="p-4">Kelas</th>
-                                    <th class="p-4">Jenis Pelanggaran</th>
-                                </tr>
-                            </thead>
-                            <tbody id="violationTableBody" class="divide-y divide-slate-100">
-                                <tr><td colspan="4" class="p-6 text-center text-slate-400">Memuat data...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead class="bg-slate-50 border-b border-slate-200 text-slate-500">
+                            <tr>
+                                <th class="p-4 font-bold">Waktu</th>
+                                <th class="p-4 font-bold">NISN</th>
+                                <th class="p-4 font-bold">Kelas</th>
+                                <th class="p-4 font-bold">Jenis Pelanggaran</th>
+                            </tr>
+                        </thead>
+                        <tbody id="violationTableBody">
+                            <tr><td colspan="4" class="p-6 text-center text-slate-400">Memuat data...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </section>
 
             <!-- TAB 2: MANAJEMEN SOAL -->
-            <section id="tab-exams" class="tab-content hidden space-y-6">
-                <h1 class="text-2xl font-bold text-slate-800">Manajemen Soal & Waktu Tayang</h1>
-                
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                    <h2 class="text-lg font-bold mb-4">Buat / Tambah Link Soal Ujian</h2>
+            <section id="tab-exams" class="tab-content hidden">
+                <h2 class="text-2xl font-bold mb-6">Manajemen Soal & Waktu Tayang</h2>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8">
+                    <h3 class="font-bold text-slate-700 mb-4">Buat / Tambah Link Soal Ujian</h3>
                     <form id="addExamForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-    <input type="text" id="inputClass" placeholder="Target Kelas (misal: X-1)" class="border p-3 rounded-xl text-sm" required>
-    <input type="text" id="inputSubject" placeholder="Mata Pelajaran" class="border p-3 rounded-xl text-sm" required>
-    <input type="url" id="inputUrl" placeholder="Link Google Form" class="border p-3 rounded-xl text-sm" required>
-    
-    <div>
-        <label class="block text-xs text-slate-500 mb-1">Mulai Tayang (Opsional)</label>
-        <input type="datetime-local" id="inputStartTime" class="w-full border p-2.5 rounded-xl text-sm">
-    </div>
-    <div>
-        <label class="block text-xs text-slate-500 mb-1">Selesai Tayang (Opsional)</label>
-        <input type="datetime-local" id="inputEndTime" class="w-full border p-2.5 rounded-xl text-sm">
-    </div>
-    
-    <div class="flex items-end">
-        <button type="submit" class="w-full bg-blue-600 text-white font-bold p-3 rounded-xl hover:bg-blue-700 transition">Simpan Soal</button>
-    </div>
-</form>
+                        <input type="text" id="inputClass" placeholder="Target Kelas (misal: X-1)" class="border p-3 rounded-xl text-sm" required>
+                        <input type="text" id="inputSubject" placeholder="Mata Pelajaran" class="border p-3 rounded-xl text-sm" required>
+                        <input type="url" id="inputUrl" placeholder="Link Google Form" class="border p-3 rounded-xl text-sm" required>
+                        <div>
+                            <label class="block text-xs text-slate-500 mb-1">Mulai Tayang (Opsional)</label>
+                            <input type="datetime-local" id="inputStartTime" class="w-full border p-2.5 rounded-xl text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-500 mb-1">Selesai Tayang (Opsional)</label>
+                            <input type="datetime-local" id="inputEndTime" class="w-full border p-2.5 rounded-xl text-sm">
+                        </div>
+                        <div class="flex items-end">
+                            <button type="submit" class="w-full bg-blue-600 text-white font-bold p-3 rounded-xl hover:bg-blue-700 transition">Simpan Soal</button>
+                        </div>
+                    </form>
                 </div>
 
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="p-4 border-b border-slate-200 bg-slate-50"><h3 class="font-bold">Daftar Soal Active</h3></div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm">
-                            <thead class="bg-slate-50 border-b text-slate-500">
-                                <tr>
-                                    <th class="p-4">Kelas</th>
-                                    <th class="p-4">Mapel</th>
-                                    <th class="p-4">Status Tayang</th>
-                                    <th class="p-4">Waktu Tayang</th>
-                                    <th class="p-4">Aksi Kontrol</th>
-                                </tr>
-                            </thead>
-                            <tbody id="examTableBody" class="divide-y divide-slate-100"></tbody>
-                        </table>
-                    </div>
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead class="bg-slate-50 border-b border-slate-200 text-slate-500">
+                            <tr>
+                                <th class="p-4 font-bold">Kelas</th>
+                                <th class="p-4 font-bold">Mapel</th>
+                                <th class="p-4 font-bold">Status Tayang</th>
+                                <th class="p-4 font-bold">Waktu Tayang</th>
+                                <th class="p-4 font-bold">Aksi Kontrol</th>
+                            </tr>
+                        </thead>
+                        <tbody id="examTableBody"></tbody>
+                    </table>
                 </div>
             </section>
 
             <!-- TAB 3: DATABASE SISWA -->
-            <section id="tab-students" class="tab-content hidden space-y-6">
-                <h1 class="text-2xl font-bold text-slate-800">Database Siswa SMAN 1 Jakarta</h1>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                    <form id="addStudentForm" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <input type="text" id="inputStudentNisn" placeholder="NISN Siswa" class="border p-3 rounded-xl text-sm" required>
-                        <input type="text" id="inputStudentName" placeholder="Nama Lengkap" class="border p-3 rounded-xl text-sm" required>
-                        <input type="text" id="inputStudentClass" placeholder="Rombel Kelas (misal: X-1)" class="border p-3 rounded-xl text-sm" required>
-                        <button type="submit" class="bg-emerald-600 text-white font-bold p-3 rounded-xl hover:bg-emerald-700 transition">Tambah Siswa</button>
-                    </form>
+            <section id="tab-students" class="tab-content hidden">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold">Database Siswa</h2>
+                    <button onclick="downloadExcelTemplate()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition">
+                        📥 Download Format Import Excel
+                    </button>
                 </div>
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm">
-                            <thead class="bg-slate-50 border-b text-slate-500">
-                                <tr><th class="p-4">NISN</th><th class="p-4">Nama Siswa</th><th class="p-4">Kelas</th></tr>
-                            </thead>
-                            <tbody id="studentTableBody" class="divide-y divide-slate-100"></tbody>
-                        </table>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <!-- Form Tambah Manual -->
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                        <h3 class="font-bold text-slate-700 mb-4">Tambah Siswa Manual</h3>
+                        <form id="addStudentForm" class="space-y-3">
+                            <input type="text" id="inputStudentNisn" placeholder="NISN" class="w-full border p-2.5 rounded-xl text-sm" required>
+                            <input type="text" id="inputStudentName" placeholder="Nama Lengkap" class="w-full border p-2.5 rounded-xl text-sm" required>
+                            <input type="text" id="inputStudentClass" placeholder="Kelas (misal: X-1)" class="w-full border p-2.5 rounded-xl text-sm" required>
+                            <input type="text" id="inputStudentPassword" placeholder="Password (Kosongkan jika = NISN)" class="w-full border p-2.5 rounded-xl text-sm">
+                            <button type="submit" class="w-full bg-blue-600 text-white font-bold p-2.5 rounded-xl hover:bg-blue-700 transition text-sm">Tambah Siswa</button>
+                        </form>
                     </div>
+
+                    <!-- Form Import Excel -->
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between">
+                        <div>
+                            <h3 class="font-bold text-slate-700 mb-2">Import Data Siswa via Excel</h3>
+                            <p class="text-xs text-slate-500 mb-4">Upload file .xlsx / .xls sesuai template untuk menambah atau memperbarui data massal.</p>
+                            <input type="file" id="excelFileInput" accept=".xlsx, .xls" class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mb-4">
+                        </div>
+                        <button onclick="handleExcelImport()" class="w-full bg-slate-800 text-white font-bold p-2.5 rounded-xl hover:bg-slate-900 transition text-sm">Proses Import Data</button>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead class="bg-slate-50 border-b border-slate-200 text-slate-500">
+                            <tr>
+                                <th class="p-4 font-bold">NISN</th>
+                                <th class="p-4 font-bold">Nama Lengkap</th>
+                                <th class="p-4 font-bold">Kelas</th>
+                                <th class="p-4 font-bold">Password</th>
+                                <th class="p-4 font-bold">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentTableBody"></tbody>
+                    </table>
                 </div>
             </section>
 
             <!-- TAB 4: RIWAYAT PENGERJAAN -->
-            <section id="tab-history" class="tab-content hidden space-y-6">
-                <h1 class="text-2xl font-bold text-slate-800">Pencatatan Pengerjaan & Izin Re-test</h1>
+            <section id="tab-history" class="tab-content hidden">
+                <h2 class="text-2xl font-bold mb-6">Pencatatan Pengerjaan & Izin Re-test</h2>
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm">
-                            <thead class="bg-slate-50 border-b text-slate-500">
-                                <tr>
-                                    <th class="p-4">NISN</th>
-                                    <th class="p-4">Ujian</th>
-                                    <th class="p-4">Jumlah Pengerjaan</th>
-                                    <th class="p-4">Status Akses Ulang</th>
-                                    <th class="p-4">Aksi Izin Admin</th>
-                                </tr>
-                            </thead>
-                            <tbody id="historyTableBody" class="divide-y divide-slate-100"></tbody>
-                        </table>
-                    </div>
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead class="bg-slate-50 border-b border-slate-200 text-slate-500">
+                            <tr>
+                                <th class="p-4 font-bold">NISN</th>
+                                <th class="p-4 font-bold">Ujian</th>
+                                <th class="p-4 font-bold text-center">Jumlah Pengerjaan</th>
+                                <th class="p-4 font-bold">Status Akses Ulang</th>
+                                <th class="p-4 font-bold">Aksi Izin Admin</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody"></tbody>
+                    </table>
                 </div>
             </section>
 
         </main>
     </div>
 
-    <script src="supabase-config.js"></script>
+    <!-- MODAL EDIT DATA SOAL -->
+    <div id="editExamModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-lg border border-slate-100">
+            <h3 class="text-lg font-bold text-slate-800 mb-4">Edit Data Soal Ujian</h3>
+            <form id="editExamForm" class="space-y-3">
+                <input type="hidden" id="editExamId">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Target Kelas</label>
+                    <input type="text" id="editClass" class="w-full border p-2.5 rounded-xl text-sm" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Mata Pelajaran</label>
+                    <input type="text" id="editSubject" class="w-full border p-2.5 rounded-xl text-sm" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Link Google Form</label>
+                    <input type="url" id="editUrl" class="w-full border p-2.5 rounded-xl text-sm" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Mulai Tayang</label>
+                    <input type="datetime-local" id="editStartTime" class="w-full border p-2.5 rounded-xl text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Selesai Tayang</label>
+                    <input type="datetime-local" id="editEndTime" class="w-full border p-2.5 rounded-xl text-sm">
+                </div>
+                <div class="flex space-x-2 pt-2">
+                    <button type="button" onclick="closeEditModal('editExamModal')" class="w-1/2 border font-bold p-2.5 rounded-xl text-sm hover:bg-slate-50">Batal</button>
+                    <button type="submit" class="w-1/2 bg-blue-600 text-white font-bold p-2.5 rounded-xl text-sm hover:bg-blue-700">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL EDIT DATA SISWA -->
+    <div id="editStudentModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md border border-slate-100">
+            <h3 class="text-lg font-bold text-slate-800 mb-4">Edit Data Siswa</h3>
+            <form id="editStudentForm" class="space-y-3">
+                <input type="hidden" id="editStudentId">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">NISN</label>
+                    <input type="text" id="editStudentNisn" class="w-full border p-2.5 rounded-xl text-sm bg-slate-50" readonly>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Nama Lengkap</label>
+                    <input type="text" id="editStudentName" class="w-full border p-2.5 rounded-xl text-sm" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Kelas</label>
+                    <input type="text" id="editStudentClass" class="w-full border p-2.5 rounded-xl text-sm" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Password Baru</label>
+                    <input type="text" id="editStudentPassword" placeholder="Kosongkan jika tidak diubah" class="w-full border p-2.5 rounded-xl text-sm">
+                </div>
+                <div class="flex space-x-2 pt-2">
+                    <button type="button" onclick="closeEditModal('editStudentModal')" class="w-1/2 border font-bold p-2.5 rounded-xl text-sm hover:bg-slate-50">Batal</button>
+                    <button type="submit" class="w-1/2 bg-blue-600 text-white font-bold p-2.5 rounded-xl text-sm hover:bg-blue-700">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>
