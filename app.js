@@ -58,6 +58,9 @@ function checkAuth() {
 function initDashboard() {
     if (loginModal) loginModal.classList.add('hidden');
     if (dashboardApp) dashboardApp.classList.remove('hidden');
+    
+    // Memuat seluruh data backend saat dashboard terbuka
+    fetchGlobalSettings();
     fetchViolations();
     subscribeViolations();
     fetchExams();
@@ -78,6 +81,52 @@ function switchTab(tabName) {
 
 function closeEditModal(modalId) {
     document.getElementById(modalId)?.classList.add('hidden');
+}
+
+// ==========================================
+// 0. PENGATURAN GLOBAL TERPUSAT
+// ==========================================
+async function fetchGlobalSettings() {
+    const client = getSupabase();
+    if (!client) return;
+
+    const { data } = await client.from('app_settings').select('*').eq('id', 1).maybeSingle();
+    if (data) {
+        const inputEnter = document.getElementById('globalEnterPassword');
+        const inputExit = document.getElementById('globalExitPassword');
+        const inputBright = document.getElementById('globalBrightness');
+        const inputVol = document.getElementById('globalVolume');
+
+        if (inputEnter) inputEnter.value = data.enter_password || '12345';
+        if (inputExit) inputExit.value = data.exit_password || '123456';
+        if (inputBright) inputBright.value = data.screen_brightness || 100;
+        if (inputVol) inputVol.value = data.sound_volume || 100;
+    }
+}
+
+async function saveGlobalSettings() {
+    const client = getSupabase();
+    if (!client) return;
+
+    const enter_password = document.getElementById('globalEnterPassword').value.trim() || '12345';
+    const exit_password = document.getElementById('globalExitPassword').value.trim() || '123456';
+    const screen_brightness = parseInt(document.getElementById('globalBrightness').value) || 100;
+    const sound_volume = parseInt(document.getElementById('globalVolume').value) || 100;
+
+    const { error } = await client.from('app_settings').upsert({
+        id: 1,
+        enter_password,
+        exit_password,
+        screen_brightness,
+        sound_volume,
+        updated_at: new Date()
+    });
+
+    if (!error) {
+        alert('Pengaturan Global CBT Berhasil Diperbarui!');
+    } else {
+        alert('Gagal menyimpan pengaturan: ' + error.message);
+    }
 }
 
 // ==========================================
@@ -110,7 +159,6 @@ async function fetchViolations() {
     }
 }
 
-// Hapus Pelanggaran Individual
 async function deleteViolation(id) {
     if (confirm('Hapus log pelanggaran ini?')) {
         const client = getSupabase();
@@ -120,13 +168,11 @@ async function deleteViolation(id) {
     }
 }
 
-// Hapus Semua Pelanggaran (Massal)
 async function deleteAllViolations() {
     if (confirm('Apakah Anda yakin ingin MENGHAPUS SEMUA log pelanggaran?')) {
         const client = getSupabase();
         if (!client) return;
         
-        // Menghapus seluruh baris data di tabel violations
         const { error } = await client.from('violations').delete().neq('id', 0);
         if (!error) {
             alert('Semua data pelanggaran berhasil dibersihkan.');
@@ -147,70 +193,7 @@ function subscribeViolations() {
 }
 
 // ==========================================
-// 4. RIWAYAT PENGERJAAN SISWA (DENGAN HAPUS INDIVIDUAL & MASSAL)
-// ==========================================
-async function fetchHistory() {
-    const client = getSupabase();
-    if (!client) return;
-
-    const { data } = await client.from('submissions').select('*, exams(subject_name)').order('created_at', { ascending: false });
-    const tbody = document.getElementById('historyTableBody');
-    if (!tbody) return;
-
-    if (data && data.length > 0) {
-        tbody.innerHTML = data.map(h => `
-            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-                <td class="p-4 font-mono font-bold text-slate-700">${h.nisn}</td>
-                <td class="p-4 font-semibold">${h.exams?.subject_name || 'Ujian CBT'}</td>
-                <td class="p-4 font-bold text-center">${h.attempt_count} x</td>
-                <td class="p-4">
-                    <span class="px-2.5 py-1 rounded-full text-xs font-bold ${h.is_allowed_retest ? 'bg-blue-100 text-blue-700' : 'bg-rose-100 text-rose-700'}">
-                        ${h.is_allowed_retest ? 'Diizinkan Ulang' : 'Terkunci (Selesai)'}
-                    </span>
-                </td>
-                <td class="p-4 space-x-2">
-                    <button onclick="toggleRetestPermission(${h.id}, ${!h.is_allowed_retest})" class="text-xs bg-slate-800 hover:bg-slate-900 text-white font-semibold px-3 py-1.5 rounded-lg transition">
-                        ${h.is_allowed_retest ? 'Kunci Akses' : 'Beri Izin Ulang'}
-                    </button>
-                    <button onclick="deleteSubmission(${h.id})" class="text-xs bg-red-50 text-red-600 font-semibold px-3 py-1.5 rounded-lg hover:bg-red-100 transition">
-                        Hapus
-                    </button>
-                </td>
-            </tr>
-        `).join('');
-    } else {
-        tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400">Belum ada riwayat pengerjaan siswa</td></tr>`;
-    }
-}
-
-// Hapus Riwayat Pengerjaan Individual
-async function deleteSubmission(id) {
-    if (confirm('Hapus riwayat pengerjaan siswa ini? Siswa akan dapat mengerjakan ulang dari awal.')) {
-        const client = getSupabase();
-        if (!client) return;
-        await client.from('submissions').delete().eq('id', id);
-        fetchHistory();
-    }
-}
-
-// Hapus Semua Riwayat Pengerjaan (Massal)
-async function deleteAllSubmissions() {
-    if (confirm('Apakah Anda yakin ingin MENGHAPUS SEMUA riwayat pengerjaan siswa?')) {
-        const client = getSupabase();
-        if (!client) return;
-
-        const { error } = await client.from('submissions').delete().neq('id', 0);
-        if (!error) {
-            alert('Semua riwayat pengerjaan berhasil dibersihkan.');
-            fetchHistory();
-        } else {
-            alert('Gagal menghapus data: ' + error.message);
-        }
-    }
-}
-
-// ==========================================
-// 2. MANAJEMEN SOAL (EDIT, KONTROL, HAPUS)
+// 2. MANAJEMEN SOAL
 // ==========================================
 async function fetchExams() {
     const client = getSupabase();
@@ -312,7 +295,7 @@ if (addExamForm) {
 }
 
 // ==========================================
-// 3. DATABASE SISWA (EDIT, IMPORT EXCEL, PASSWORD)
+// 3. DATABASE SISWA
 // ==========================================
 async function fetchStudents() {
     const client = getSupabase();
@@ -395,7 +378,6 @@ if (addStudentForm) {
     });
 }
 
-// DOWNLOAD TEMPLATE EXCEL IMPORT SISWA
 function downloadExcelTemplate() {
     const templateData = [
         { NISN: "0012345678", NAMA: "Ahmad Bagus", KELAS: "X-1", PASSWORD: "" },
@@ -407,13 +389,9 @@ function downloadExcelTemplate() {
     XLSX.writeFile(wb, "Template_Import_Siswa_CBT.xlsx");
 }
 
-// PROSES IMPORT FILE EXCEL
 async function handleExcelImport() {
     const fileInput = document.getElementById('excelFileInput');
-    if (!fileInput.files.length) {
-        alert('Silakan pilih file Excel terlebih dahulu!');
-        return;
-    }
+    if (!fileInput.files.length) return alert('Silakan pilih file Excel terlebih dahulu!');
 
     const client = getSupabase();
     if (!client) return;
@@ -429,10 +407,7 @@ async function handleExcelImport() {
             const worksheet = workbook.Sheets[sheetName];
             const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-            if (!jsonData.length) {
-                alert('File Excel kosong atau format tidak sesuai!');
-                return;
-            }
+            if (!jsonData.length) return alert('File Excel kosong atau format tidak sesuai!');
 
             const formattedStudents = jsonData.map(item => ({
                 nisn: String(item.NISN || item.nisn || '').trim(),
@@ -441,10 +416,7 @@ async function handleExcelImport() {
                 password: item.PASSWORD || item.password ? String(item.PASSWORD || item.password).trim() : null
             })).filter(s => s.nisn && s.nama && s.student_class);
 
-            if (!formattedStudents.length) {
-                alert('Tidak ada data valid yang ditemukan pada kolom NISN, NAMA, dan KELAS.');
-                return;
-            }
+            if (!formattedStudents.length) return alert('Tidak ada data valid yang ditemukan pada kolom NISN, NAMA, dan KELAS.');
 
             const { error } = await client.from('students').upsert(formattedStudents, { onConflict: 'nisn' });
             if (!error) {
@@ -484,15 +456,42 @@ async function fetchHistory() {
                         ${h.is_allowed_retest ? 'Diizinkan Ulang' : 'Terkunci (Selesai)'}
                     </span>
                 </td>
-                <td class="p-4">
+                <td class="p-4 space-x-2">
                     <button onclick="toggleRetestPermission(${h.id}, ${!h.is_allowed_retest})" class="text-xs bg-slate-800 hover:bg-slate-900 text-white font-semibold px-3 py-1.5 rounded-lg transition">
                         ${h.is_allowed_retest ? 'Kunci Akses' : 'Beri Izin Ulang'}
+                    </button>
+                    <button onclick="deleteSubmission(${h.id})" class="text-xs bg-red-50 text-red-600 font-semibold px-3 py-1.5 rounded-lg hover:bg-red-100 transition">
+                        Hapus
                     </button>
                 </td>
             </tr>
         `).join('');
     } else {
         tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400">Belum ada riwayat pengerjaan siswa</td></tr>`;
+    }
+}
+
+async function deleteSubmission(id) {
+    if (confirm('Hapus riwayat pengerjaan siswa ini? Siswa akan dapat mengerjakan ulang dari awal.')) {
+        const client = getSupabase();
+        if (!client) return;
+        await client.from('submissions').delete().eq('id', id);
+        fetchHistory();
+    }
+}
+
+async function deleteAllSubmissions() {
+    if (confirm('Apakah Anda yakin ingin MENGHAPUS SEMUA riwayat pengerjaan siswa?')) {
+        const client = getSupabase();
+        if (!client) return;
+
+        const { error } = await client.from('submissions').delete().neq('id', 0);
+        if (!error) {
+            alert('Semua riwayat pengerjaan berhasil dibersihkan.');
+            fetchHistory();
+        } else {
+            alert('Gagal menghapus data: ' + error.message);
+        }
     }
 }
 
@@ -504,44 +503,3 @@ async function toggleRetestPermission(id, newAllowed) {
 }
 
 document.addEventListener('DOMContentLoaded', checkAuth);
-// Memuat Pengaturan Global saat Dashboard dibuka
-async function fetchGlobalSettings() {
-    const client = getSupabase();
-    if (!client) return;
-
-    const { data } = await client.from('app_settings').select('*').eq('id', 1).maybeSingle();
-    if (data) {
-        document.getElementById('globalEnterPassword').value = data.enter_password || '12345';
-        document.getElementById('globalExitPassword').value = data.exit_password || '123456';
-        document.getElementById('globalBrightness').value = data.screen_brightness || 100;
-        document.getElementById('globalVolume').value = data.sound_volume || 100;
-    }
-}
-
-// Menyimpan Pengaturan Global ke Supabase
-async function saveGlobalSettings() {
-    const client = getSupabase();
-    if (!client) return;
-
-    const enter_password = document.getElementById('globalEnterPassword').value.trim() || '12345';
-    const exit_password = document.getElementById('globalExitPassword').value.trim() || '123456';
-    const screen_brightness = parseInt(document.getElementById('globalBrightness').value) || 100;
-    const sound_volume = parseInt(document.getElementById('globalVolume').value) || 100;
-
-    const { error } = await client.from('app_settings').upsert({
-        id: 1,
-        enter_password,
-        exit_password,
-        screen_brightness,
-        sound_volume,
-        updated_at: new Date()
-    });
-
-    if (!error) {
-        alert('Pengaturan Global CBT Berhasil Diperbarui!');
-    } else {
-        alert('Gagal menyimpan pengaturan: ' + error.message);
-    }
-}
-
-// Panggil fetchGlobalSettings() di dalam initDashboard()
