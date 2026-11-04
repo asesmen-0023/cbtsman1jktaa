@@ -95,21 +95,23 @@
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                     <h2 class="text-lg font-bold mb-4">Buat / Tambah Link Soal Ujian</h2>
                     <form id="addExamForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <input type="text" id="inputClass" placeholder="Target Kelas (misal: X-1)" class="border p-3 rounded-xl text-sm" required>
-                        <input type="text" id="inputSubject" placeholder="Mata Pelajaran" class="border p-3 rounded-xl text-sm" required>
-                        <input type="url" id="inputUrl" placeholder="Link Google Form" class="border p-3 rounded-xl text-sm" required>
-                        <div>
-                            <label class="block text-xs text-slate-500 mb-1">Mulai Tayang (Opsional)</label>
-                            <input type="datetime-local" id="inputStartTime" class="w-full border p-2.5 rounded-xl text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-slate-500 mb-1">Selesai Tayang (Opsional)</label>
-                            <input type="datetime-local" id="inputEndTime" class="w-full border p-2.5 rounded-xl text-sm">
-                        </div>
-                        <div class="flex items-end">
-                            <button type="submit" class="w-full bg-blue-600 text-white font-bold p-3 rounded-xl hover:bg-blue-700 transition">Simpan Soal</button>
-                        </div>
-                    </form>
+    <input type="text" id="inputClass" placeholder="Target Kelas (misal: X-1)" class="border p-3 rounded-xl text-sm" required>
+    <input type="text" id="inputSubject" placeholder="Mata Pelajaran" class="border p-3 rounded-xl text-sm" required>
+    <input type="url" id="inputUrl" placeholder="Link Google Form" class="border p-3 rounded-xl text-sm" required>
+    
+    <div>
+        <label class="block text-xs text-slate-500 mb-1">Mulai Tayang (Opsional)</label>
+        <input type="datetime-local" id="inputStartTime" class="w-full border p-2.5 rounded-xl text-sm">
+    </div>
+    <div>
+        <label class="block text-xs text-slate-500 mb-1">Selesai Tayang (Opsional)</label>
+        <input type="datetime-local" id="inputEndTime" class="w-full border p-2.5 rounded-xl text-sm">
+    </div>
+    
+    <div class="flex items-end">
+        <button type="submit" class="w-full bg-blue-600 text-white font-bold p-3 rounded-xl hover:bg-blue-700 transition">Simpan Soal</button>
+    </div>
+</form>
                 </div>
 
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
