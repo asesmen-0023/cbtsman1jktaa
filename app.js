@@ -110,22 +110,24 @@ function subscribeViolations() {
 }
 
 // 3. MANAJEMEN SOAL
+// Memuat Daftar Soal & Tombol Aksi Kontrol Tampil/Sembunyi
 async function fetchExams() {
     const client = getSupabase();
     if (!client) return;
 
-    const { data } = await client.from('exams').select('*').order('created_at', { ascending: false });
+    const { data, error } = await client.from('exams').select('*').order('created_at', { ascending: false });
     const tbody = document.getElementById('examTableBody');
     if (!tbody) return;
 
     if (data && data.length > 0) {
         tbody.innerHTML = data.map(e => `
-            <tr class="hover:bg-slate-50 transition">
-                <td class="p-4 font-bold">${e.student_class}</td>
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                <td class="p-4 font-bold text-slate-700">${e.student_class}</td>
                 <td class="p-4 font-semibold text-slate-700">${e.subject_name}</td>
                 <td class="p-4">
-                    <button onclick="toggleExamStatus(${e.id}, ${!e.is_active})" class="px-3 py-1 rounded-full text-xs font-bold transition ${e.is_active ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}">
-                        ${e.is_active ? 'TAMPIL (AKTIF)' : 'SEMBUNYI (OFF)'}
+                    <!-- Tombol Status Tayang yang bisa diklik langsung -->
+                    <button onclick="toggleExamStatus(${e.id}, ${!e.is_active})" class="px-3 py-1.5 rounded-full text-xs font-bold transition ${e.is_active ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}">
+                        ${e.is_active ? '🟢 TAMPIL (AKTIF)' : '🔴 DISEMBUNYIKAN'}
                     </button>
                 </td>
                 <td class="p-4 text-xs text-slate-500">
@@ -133,7 +135,7 @@ async function fetchExams() {
                     ${e.end_time ? new Date(e.end_time).toLocaleString('id-ID') : 'Tidak dibatasi'}
                 </td>
                 <td class="p-4">
-                    <button onclick="deleteExam(${e.id})" class="text-xs text-red-600 font-semibold hover:underline">Hapus</button>
+                    <button onclick="deleteExam(${e.id})" class="text-xs bg-red-50 text-red-600 font-semibold px-3 py-1.5 rounded-lg hover:bg-red-100 transition">Hapus</button>
                 </td>
             </tr>
         `).join('');
@@ -142,11 +144,21 @@ async function fetchExams() {
     }
 }
 
+// Fungsi untuk Mengubah Status Tampil / Sembunyi ke Database
 async function toggleExamStatus(id, newStatus) {
     const client = getSupabase();
     if (!client) return;
-    await client.from('exams').update({ is_active: newStatus }).eq('id', id);
-    fetchExams();
+
+    const { error } = await client
+        .from('exams')
+        .update({ is_active: newStatus })
+        .eq('id', id);
+
+    if (error) {
+        alert('Gagal mengubah status: ' + error.message);
+    } else {
+        fetchExams(); // Refresh tabel secara otomatis
+    }
 }
 
 async function deleteExam(id) {
@@ -171,9 +183,21 @@ if (addExamForm) {
         const start_time = document.getElementById('inputStartTime').value || null;
         const end_time = document.getElementById('inputEndTime').value || null;
 
-        await client.from('exams').insert([{ student_class, subject_name, form_url, start_time, end_time }]);
-        addExamForm.reset();
-        fetchExams();
+        const { error } = await client.from('exams').insert([{ 
+            student_class, 
+            subject_name, 
+            form_url, 
+            start_time, 
+            end_time, 
+            is_active: true // Default langsung tampil aktif
+        }]);
+
+        if (error) {
+            alert('Gagal menyimpan soal: ' + error.message);
+        } else {
+            addExamForm.reset();
+            fetchExams();
+        }
     });
 }
 
