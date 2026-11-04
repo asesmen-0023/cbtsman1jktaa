@@ -31,36 +31,7 @@
         </div>
     </div>
 
-    <!-- TAB MANAJEMEN SOAL ATAU HEADER UTAMA DASHBOARD -->
-<div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8">
-    <div class="flex items-center justify-between mb-4">
-        <div>
-            <h3 class="font-bold text-slate-800 text-lg">⚙️ Pengaturan Global Ujian & Kiosk</h3>
-            <p class="text-xs text-slate-500">Berlaku terpusat untuk seluruh mata pelajaran dan jenjang kelas</p>
-        </div>
-        <button onclick="saveGlobalSettings()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition">
-            Simpan Pengaturan Global
-        </button>
-    </div>
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div>
-            <label class="block text-xs font-bold text-slate-600 mb-1">Password Masuk Ujian</label>
-            <input type="text" id="globalEnterPassword" class="w-full border p-2.5 rounded-xl text-sm font-mono" placeholder="12345">
-        </div>
-        <div>
-            <label class="block text-xs font-bold text-slate-600 mb-1">Password Keluar / Proktor</label>
-            <input type="text" id="globalExitPassword" class="w-full border p-2.5 rounded-xl text-sm font-mono" placeholder="123456">
-        </div>
-        <div>
-            <label class="block text-xs font-bold text-slate-600 mb-1">Kecerahan Layar (%)</label>
-            <input type="number" id="globalBrightness" min="10" max="100" class="w-full border p-2.5 rounded-xl text-sm" placeholder="100">
-        </div>
-        <div>
-            <label class="block text-xs font-bold text-slate-600 mb-1">Volume Suara (%)</label>
-            <input type="number" id="globalVolume" min="0" max="100" class="w-full border p-2.5 rounded-xl text-sm" placeholder="100">
-        </div>
-    </div>
-</div>
+    
     <!-- MAIN DASHBOARD -->
     <div id="dashboardApp" class="hidden min-h-screen flex flex-col md:flex-row">
         <!-- Sidebar -->
@@ -75,6 +46,8 @@
                     <button onclick="switchTab('exams')" id="nav-exams" class="nav-btn w-full text-left p-3 rounded-xl text-sm font-semibold hover:bg-slate-800 transition">📝 Manajemen Soal</button>
                     <button onclick="switchTab('students')" id="nav-students" class="nav-btn w-full text-left p-3 rounded-xl text-sm font-semibold hover:bg-slate-800 transition">🎓 Database Siswa</button>
                     <button onclick="switchTab('history')" id="nav-history" class="nav-btn w-full text-left p-3 rounded-xl text-sm font-semibold hover:bg-slate-800 transition">📊 Riwayat Pengerjaan</button>
+                    <!-- MENU SIDEBAR BARU: PENGATURAN GLOBAL -->
+                    <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn w-full text-left p-3 rounded-xl text-sm font-semibold hover:bg-slate-800 transition">⚙️ Pengaturan CBT</button>
                 </nav>
             </div>
             <div class="text-xs text-slate-500 pt-6 border-t border-slate-800">
@@ -86,36 +59,36 @@
         <main class="flex-1 p-6 md:p-10 overflow-y-auto">
             
             <!-- TAB 1: LIVE MONITORING -->
-<section id="tab-monitoring" class="tab-content">
-    <div class="flex items-center justify-between mb-6">
-        <div>
-            <h2 class="text-2xl font-bold">Real-time Monitoring Pelanggaran</h2>
-            <p class="text-xs text-slate-500">Laporan siswa yang keluar/ditinggalkan dari aplikasi CBT</p>
-        </div>
-        <div class="flex items-center space-x-3">
-            <button onclick="deleteAllViolations()" class="bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 text-xs font-bold px-3.5 py-2 rounded-xl transition">
-                🗑️ Hapus Semua Pelanggaran
-            </button>
-            <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1.5 rounded-full">Live Connected</span>
-        </div>
-    </div>
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <table class="w-full text-left border-collapse text-sm">
-            <thead class="bg-slate-50 border-b border-slate-200 text-slate-500">
-                <tr>
-                    <th class="p-4 font-bold">Waktu</th>
-                    <th class="p-4 font-bold">NISN</th>
-                    <th class="p-4 font-bold">Kelas</th>
-                    <th class="p-4 font-bold">Jenis Pelanggaran</th>
-                    <th class="p-4 font-bold">Aksi</th>
-                </tr>
-            </thead>
-            <tbody id="violationTableBody">
-                <tr><td colspan="5" class="p-6 text-center text-slate-400">Memuat data...</td></tr>
-            </tbody>
-        </table>
-    </div>
-</section>
+            <section id="tab-monitoring" class="tab-content">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold">Real-time Monitoring Pelanggaran</h2>
+                        <p class="text-xs text-slate-500">Laporan siswa yang keluar/ditinggalkan dari aplikasi CBT</p>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <button onclick="deleteAllViolations()" class="bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 text-xs font-bold px-3.5 py-2 rounded-xl transition">
+                            🗑️ Hapus Semua Pelanggaran
+                        </button>
+                        <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1.5 rounded-full">Live Connected</span>
+                    </div>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead class="bg-slate-50 border-b border-slate-200 text-slate-500">
+                            <tr>
+                                <th class="p-4 font-bold">Waktu</th>
+                                <th class="p-4 font-bold">NISN</th>
+                                <th class="p-4 font-bold">Kelas</th>
+                                <th class="p-4 font-bold">Jenis Pelanggaran</th>
+                                <th class="p-4 font-bold">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="violationTableBody">
+                            <tr><td colspan="5" class="p-6 text-center text-slate-400">Memuat data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
 
             <!-- TAB 2: MANAJEMEN SOAL -->
             <section id="tab-exams" class="tab-content hidden">
@@ -206,31 +179,72 @@
             </section>
 
             <!-- TAB 4: RIWAYAT PENGERJAAN -->
-<section id="tab-history" class="tab-content hidden">
-    <div class="flex items-center justify-between mb-6">
-        <div>
-            <h2 class="text-2xl font-bold">Pencatatan Pengerjaan & Izin Re-test</h2>
-            <p class="text-xs text-slate-500">Riwayat percobaan pengerjaan ujian oleh siswa</p>
-        </div>
-        <button onclick="deleteAllSubmissions()" class="bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 text-xs font-bold px-3.5 py-2 rounded-xl transition">
-            🗑️ Hapus Semua Riwayat
-        </button>
-    </div>
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <table class="w-full text-left border-collapse text-sm">
-            <thead class="bg-slate-50 border-b border-slate-200 text-slate-500">
-                <tr>
-                    <th class="p-4 font-bold">NISN</th>
-                    <th class="p-4 font-bold">Ujian</th>
-                    <th class="p-4 font-bold text-center">Jumlah Pengerjaan</th>
-                    <th class="p-4 font-bold">Status Akses Ulang</th>
-                    <th class="p-4 font-bold">Aksi Admin</th>
-                </tr>
-            </thead>
-            <tbody id="historyTableBody"></tbody>
-        </table>
-    </div>
-</section>
+            <section id="tab-history" class="tab-content hidden">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold">Pencatatan Pengerjaan & Izin Re-test</h2>
+                        <p class="text-xs text-slate-500">Riwayat percobaan pengerjaan ujian oleh siswa</p>
+                    </div>
+                    <button onclick="deleteAllSubmissions()" class="bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 text-xs font-bold px-3.5 py-2 rounded-xl transition">
+                        🗑️ Hapus Semua Riwayat
+                    </button>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead class="bg-slate-50 border-b border-slate-200 text-slate-500">
+                            <tr>
+                                <th class="p-4 font-bold">NISN</th>
+                                <th class="p-4 font-bold">Ujian</th>
+                                <th class="p-4 font-bold text-center">Jumlah Pengerjaan</th>
+                                <th class="p-4 font-bold">Status Akses Ulang</th>
+                                <th class="p-4 font-bold">Aksi Admin</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- TAB 5: PENGATURAN GLOBAL TERPUSAT (BERDIRI SENDIRI) -->
+            <section id="tab-settings" class="tab-content hidden">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold">Pengaturan Global Ujian & Kiosk</h2>
+                        <p class="text-xs text-slate-500">Konfigurasi keamanan terpusat untuk seluruh aplikasi Android siswa</p>
+                    </div>
+                    <button onclick="saveGlobalSettings()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-5 py-3 rounded-xl transition">
+                        💾 Simpan Pengaturan Global
+                    </button>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 max-w-4xl space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Password Masuk Ujian</label>
+                            <p class="text-xs text-slate-400 mb-2">Password yang harus diisi siswa untuk memulai soal.</p>
+                            <input type="text" id="globalEnterPassword" class="w-full border p-3 rounded-xl text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none" placeholder="12345">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Password Keluar / Proktor</label>
+                            <p class="text-xs text-slate-400 mb-2">Password khusus proktor untuk membuka layar kunci / keluar ujian.</p>
+                            <input type="text" id="globalExitPassword" class="w-full border p-3 rounded-xl text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none" placeholder="123456">
+                        </div>
+                    </div>
+
+                    <div class="border-t border-slate-100 pt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Kecerahan Layar (%)</label>
+                            <p class="text-xs text-slate-400 mb-2">Tingkat terang layar HP siswa saat ujian (10% - 100%).</p>
+                            <input type="number" id="globalBrightness" min="10" max="100" class="w-full border p-3 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="100">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Volume Suara (%)</label>
+                            <p class="text-xs text-slate-400 mb-2">Tingkat volume nada alarm HP siswa saat ujian (0% - 100%).</p>
+                            <input type="number" id="globalVolume" min="0" max="100" class="w-full border p-3 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="100">
+                        </div>
+                    </div>
+                </div>
+            </section>
 
         </main>
     </div>
