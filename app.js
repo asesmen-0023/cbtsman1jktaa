@@ -1,12 +1,94 @@
 // Pembantu instansiasi Supabase secara aman
 const getSupabase = () => window.supabaseClient || (window.supabase ? window.supabase.createClient('https://ulroqkrnwzzrgkasrqit.supabase.co', 'sb_publishable_DJm-HRJpia9X3CzOlBq61Q_Dqct-DPi') : null);
 
-// ELEMEN DOM LOG IN
+// ELEMEN DOM LOG IN & UI
 const loginModal = document.getElementById('loginModal');
 const dashboardApp = document.getElementById('dashboardApp');
 const adminLoginForm = document.getElementById('adminLoginForm');
 const logoutBtn = document.getElementById('logoutBtn');
 
+// ==========================================
+// UTILITY DIALOG MODERN & KUSTOM (MENGGANTIKAN ALERT/CONFIRM)
+// ==========================================
+function showModernAlert(message, title = 'Informasi', type = 'info') {
+    const existing = document.getElementById('modernAlertModal');
+    if (existing) existing.remove();
+
+    let iconBg = 'bg-blue-100 text-blue-600';
+    let iconSymbol = 'ℹ️';
+
+    if (type === 'error') {
+        iconBg = 'bg-rose-100 text-rose-600';
+        iconSymbol = '⚠️';
+    } else if (type === 'success') {
+        iconBg = 'bg-emerald-100 text-emerald-600';
+        iconSymbol = '✅';
+    }
+
+    const modalHtml = `
+    <div id="modernAlertModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[999] transition-opacity duration-200">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm border border-slate-100 transform scale-100 transition-transform">
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center font-bold text-lg">
+                    ${iconSymbol}
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-800 text-base">${title}</h3>
+                </div>
+            </div>
+            <p class="text-sm text-slate-600 leading-relaxed mb-6">${message}</p>
+            <button onclick="closeModernModal('modernAlertModal')" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-xl text-sm transition">
+                Mengerti
+            </button>
+        </div>
+    </div>`;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function showModernConfirm(message, title = 'Konfirmasi Tindakan', onConfirm) {
+    const existing = document.getElementById('modernConfirmModal');
+    if (existing) existing.remove();
+
+    const modalHtml = `
+    <div id="modernConfirmModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[999] transition-opacity duration-200">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm border border-slate-100">
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-lg">
+                    ❓
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-800 text-base">${title}</h3>
+                </div>
+            </div>
+            <p class="text-sm text-slate-600 leading-relaxed mb-6">${message}</p>
+            <div class="flex space-x-3">
+                <button onclick="closeModernModal('modernConfirmModal')" class="w-1/2 border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold py-2.5 rounded-xl text-sm transition">
+                    Batal
+                </button>
+                <button id="btnModernConfirmAction" class="w-1/2 bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 rounded-xl text-sm transition">
+                    Ya, Lanjutkan
+                </button>
+            </div>
+        </div>
+    </div>`;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    document.getElementById('btnModernConfirmAction').onclick = () => {
+        closeModernModal('modernConfirmModal');
+        onConfirm();
+    };
+}
+
+function closeModernModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) modal.remove();
+}
+
+// ==========================================
+// HANDLER AUTENTIKASI ADMIN
+// ==========================================
 if (adminLoginForm) {
     adminLoginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -15,7 +97,7 @@ if (adminLoginForm) {
 
         const client = getSupabase();
         if (!client) {
-            alert('Koneksi Supabase belum siap!');
+            showModernAlert('Koneksi Supabase belum siap!', 'Gagal Koneksi', 'error');
             return;
         }
 
@@ -28,7 +110,7 @@ if (adminLoginForm) {
                 .maybeSingle();
 
             if (error || !data) {
-                alert('Username atau Password Admin Salah!');
+                showModernAlert('Username atau Password Admin Salah!', 'Akses Ditolak', 'error');
                 return;
             }
 
@@ -36,16 +118,18 @@ if (adminLoginForm) {
             sessionStorage.setItem('cbt_admin_name', data.nama_proktor || 'Proktor SMAN 1 Jakarta');
             initDashboard();
         } catch (err) {
-            alert('Terjadi kesalahan koneksi: ' + err.message);
+            showModernAlert('Terjadi kesalahan koneksi: ' + err.message, 'Kesalahan Sistem', 'error');
         }
     });
 }
 
 if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
-        sessionStorage.removeItem('cbt_admin_logged');
-        sessionStorage.removeItem('cbt_admin_name');
-        location.reload();
+        showModernConfirm('Apakah Anda yakin ingin keluar dari panel admin ini?', 'Konfirmasi Logout', () => {
+            sessionStorage.removeItem('cbt_admin_logged');
+            sessionStorage.removeItem('cbt_admin_name');
+            location.reload();
+        });
     });
 }
 
@@ -59,7 +143,6 @@ function initDashboard() {
     if (loginModal) loginModal.classList.add('hidden');
     if (dashboardApp) dashboardApp.classList.remove('hidden');
     
-    // Memuat seluruh data backend saat dashboard terbuka
     fetchGlobalSettings();
     fetchViolations();
     subscribeViolations();
@@ -123,9 +206,9 @@ async function saveGlobalSettings() {
     });
 
     if (!error) {
-        alert('Pengaturan Global CBT Berhasil Diperbarui!');
+        showModernAlert('Pengaturan Global CBT Berhasil Diperbarui!', 'Berhasil', 'success');
     } else {
-        alert('Gagal menyimpan pengaturan: ' + error.message);
+        showModernAlert('Gagal menyimpan pengaturan: ' + error.message, 'Gagal', 'error');
     }
 }
 
@@ -160,27 +243,27 @@ async function fetchViolations() {
 }
 
 async function deleteViolation(id) {
-    if (confirm('Hapus log pelanggaran ini?')) {
+    showModernConfirm('Penghapusan log pelanggaran ini bersifat permanen.', 'Hapus Log Pelanggaran', async () => {
         const client = getSupabase();
         if (!client) return;
         await client.from('violations').delete().eq('id', id);
         fetchViolations();
-    }
+    });
 }
 
 async function deleteAllViolations() {
-    if (confirm('Apakah Anda yakin ingin MENGHAPUS SEMUA log pelanggaran?')) {
+    showModernConfirm('Apakah Anda yakin ingin MENGHAPUS SEMUA log pelanggaran terdeteksi?', 'Hapus Masal Pelanggaran', async () => {
         const client = getSupabase();
         if (!client) return;
         
         const { error } = await client.from('violations').delete().neq('id', 0);
         if (!error) {
-            alert('Semua data pelanggaran berhasil dibersihkan.');
+            showModernAlert('Semua data pelanggaran berhasil dibersihkan!', 'Berhasil', 'success');
             fetchViolations();
         } else {
-            alert('Gagal menghapus data: ' + error.message);
+            showModernAlert('Gagal menghapus data: ' + error.message, 'Gagal', 'error');
         }
-    }
+    });
 }
 
 function subscribeViolations() {
@@ -236,12 +319,12 @@ async function toggleExamStatus(id, newStatus) {
 }
 
 async function deleteExam(id) {
-    if (confirm('Hapus soal ini?')) {
+    showModernConfirm('Apakah Anda yakin ingin menghapus tautan soal ini?', 'Hapus Soal', async () => {
         const client = getSupabase();
         if (!client) return;
         await client.from('exams').delete().eq('id', id);
         fetchExams();
-    }
+    });
 }
 
 function openEditExamModal(exam) {
@@ -270,8 +353,9 @@ document.getElementById('editExamForm')?.addEventListener('submit', async (e) =>
     if (!error) {
         closeEditModal('editExamModal');
         fetchExams();
+        showModernAlert('Data soal berhasil diperbarui!', 'Berhasil', 'success');
     } else {
-        alert('Gagal mengupdate soal: ' + error.message);
+        showModernAlert('Gagal mengupdate soal: ' + error.message, 'Gagal', 'error');
     }
 });
 
@@ -291,6 +375,7 @@ if (addExamForm) {
         await client.from('exams').insert([{ student_class, subject_name, form_url, start_time, end_time, is_active: true }]);
         addExamForm.reset();
         fetchExams();
+        showModernAlert('Soal ujian berhasil ditambahkan!', 'Berhasil', 'success');
     });
 }
 
@@ -324,12 +409,12 @@ async function fetchStudents() {
 }
 
 async function deleteStudent(id) {
-    if (confirm('Hapus data siswa ini?')) {
+    showModernConfirm('Hapus data akun siswa ini dari database?', 'Hapus Siswa', async () => {
         const client = getSupabase();
         if (!client) return;
         await client.from('students').delete().eq('id', id);
         fetchStudents();
-    }
+    });
 }
 
 function openEditStudentModal(s) {
@@ -355,8 +440,9 @@ document.getElementById('editStudentForm')?.addEventListener('submit', async (e)
     if (!error) {
         closeEditModal('editStudentModal');
         fetchStudents();
+        showModernAlert('Data siswa berhasil diperbarui!', 'Berhasil', 'success');
     } else {
-        alert('Gagal mengupdate siswa: ' + error.message);
+        showModernAlert('Gagal mengupdate siswa: ' + error.message, 'Gagal', 'error');
     }
 });
 
@@ -375,6 +461,7 @@ if (addStudentForm) {
         await client.from('students').insert([{ nisn, nama, student_class, password }]);
         addStudentForm.reset();
         fetchStudents();
+        showModernAlert('Data siswa baru berhasil ditambahkan!', 'Berhasil', 'success');
     });
 }
 
@@ -391,7 +478,7 @@ function downloadExcelTemplate() {
 
 async function handleExcelImport() {
     const fileInput = document.getElementById('excelFileInput');
-    if (!fileInput.files.length) return alert('Silakan pilih file Excel terlebih dahulu!');
+    if (!fileInput.files.length) return showModernAlert('Silakan pilih file Excel terlebih dahulu!', 'Peringatan', 'error');
 
     const client = getSupabase();
     if (!client) return;
@@ -407,7 +494,7 @@ async function handleExcelImport() {
             const worksheet = workbook.Sheets[sheetName];
             const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-            if (!jsonData.length) return alert('File Excel kosong atau format tidak sesuai!');
+            if (!jsonData.length) return showModernAlert('File Excel kosong atau format tidak sesuai!', 'File Kosong', 'error');
 
             const formattedStudents = jsonData.map(item => ({
                 nisn: String(item.NISN || item.nisn || '').trim(),
@@ -416,18 +503,18 @@ async function handleExcelImport() {
                 password: item.PASSWORD || item.password ? String(item.PASSWORD || item.password).trim() : null
             })).filter(s => s.nisn && s.nama && s.student_class);
 
-            if (!formattedStudents.length) return alert('Tidak ada data valid yang ditemukan pada kolom NISN, NAMA, dan KELAS.');
+            if (!formattedStudents.length) return showModernAlert('Tidak ada data valid yang ditemukan pada kolom NISN, NAMA, dan KELAS.', 'Format Salah', 'error');
 
             const { error } = await client.from('students').upsert(formattedStudents, { onConflict: 'nisn' });
             if (!error) {
-                alert(`Berhasil mengimpor/memperbarui ${formattedStudents.length} data siswa!`);
+                showModernAlert(`Berhasil mengimpor/memperbarui ${formattedStudents.length} data siswa!`, 'Import Sukses', 'success');
                 fileInput.value = '';
                 fetchStudents();
             } else {
-                alert('Gagal mengimpor ke database: ' + error.message);
+                showModernAlert('Gagal mengimpor ke database: ' + error.message, 'Gagal Import', 'error');
             }
         } catch (err) {
-            alert('Kesalahan saat membaca file Excel: ' + err.message);
+            showModernAlert('Kesalahan saat membaca file Excel: ' + err.message, 'Format File Rusak', 'error');
         }
     };
 
@@ -472,27 +559,27 @@ async function fetchHistory() {
 }
 
 async function deleteSubmission(id) {
-    if (confirm('Hapus riwayat pengerjaan siswa ini? Siswa akan dapat mengerjakan ulang dari awal.')) {
+    showModernConfirm('Hapus riwayat pengerjaan siswa ini? Siswa akan dapat mengerjakan ujian dari awal.', 'Hapus Riwayat', async () => {
         const client = getSupabase();
         if (!client) return;
         await client.from('submissions').delete().eq('id', id);
         fetchHistory();
-    }
+    });
 }
 
 async function deleteAllSubmissions() {
-    if (confirm('Apakah Anda yakin ingin MENGHAPUS SEMUA riwayat pengerjaan siswa?')) {
+    showModernConfirm('Apakah Anda yakin ingin MENGHAPUS SEMUA riwayat pengerjaan siswa?', 'Hapus Masal Riwayat', async () => {
         const client = getSupabase();
         if (!client) return;
 
         const { error } = await client.from('submissions').delete().neq('id', 0);
         if (!error) {
-            alert('Semua riwayat pengerjaan berhasil dibersihkan.');
+            showModernAlert('Semua riwayat pengerjaan berhasil dibersihkan!', 'Berhasil', 'success');
             fetchHistory();
         } else {
-            alert('Gagal menghapus data: ' + error.message);
+            showModernAlert('Gagal menghapus data: ' + error.message, 'Gagal', 'error');
         }
-    }
+    });
 }
 
 async function toggleRetestPermission(id, newAllowed) {
