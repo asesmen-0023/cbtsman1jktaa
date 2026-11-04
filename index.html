@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Admin CBT SMAN 1 Jakarta</title>
+    
+    <!-- 1. FAVICON LOGO SEKOLAH -->
+    <link rel="icon" type="image/png" href="logo-sekolah.png">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- CSS Kustom -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-100 font-sans">
+
+    <!-- Navbar Top dengan Logo Sekolah -->
+    <nav class="bg-blue-600 p-4 text-white flex justify-between items-center shadow-lg">
+        <div class="flex items-center gap-3">
+            <!-- 2. LOGO SEKOLAH DI NAVBAR -->
+            <img src="logo-sekolah.png" alt="Logo SMAN 1 Jakarta" class="w-9 h-9 object-contain bg-white rounded-full p-1 shadow">
+            <div>
+                <h1 class="text-lg md:text-xl font-bold leading-tight">CBT Admin Dashboard</h1>
+                <p class="text-xs text-blue-100">SMAN 1 Jakarta</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="inline-block w-2.5 h-2.5 bg-green-400 rounded-full animate-ping"></span>
+            <span class="bg-blue-800 text-xs px-3 py-1 rounded-full font-medium">Proktor Online</span>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-6 space-y-6">
+
+        <!-- Header Kartu Informasi Sekolah -->
+        <div class="bg-white p-5 rounded-xl shadow-md border border-slate-200 flex items-center gap-4">
+            <!-- 3. LOGO SEKOLAH UKURAN BESAR DI HEADER -->
+            <img src="logo-sekolah.png" alt="Logo Sekolah" class="w-16 h-16 object-contain">
+            <div>
+                <h2 class="text-xl font-bold text-slate-800">Sistem Pengawasan Ujian Berbasis Komputer (CBT)</h2>
+                <p class="text-sm text-slate-500">Panel Kontrol Utama Proktor • SMAN 1 Jakarta</p>
+            </div>
+        </div>
+
+        <!-- Section 1: Realtime Monitoring Pelanggaran -->
+        <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold text-red-600 flex items-center gap-2">
+                    🚨 Real-time Monitoring Pelanggaran
+                </h2>
+                <span class="text-xs text-slate-500 animate-pulse">● Live Listening</span>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-red-50 text-red-700 border-b">
+                            <th class="p-3">Waktu</th>
+                            <th class="p-3">NISN</th>
+                            <th class="p-3">Kelas</th>
+                            <th class="p-3">Jenis Pelanggaran</th>
+                        </tr>
+                    </thead>
+                    <tbody id="violationTableBody">
+                        <tr>
+                            <td colspan="4" class="p-4 text-center text-slate-400">Memuat data pelanggaran...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Section 2: Form Pengaturan Link Soal Google Form -->
+        <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+            <h2 class="text-lg font-bold text-slate-800 mb-4">📚 Pengaturan Link Soal Google Form</h2>
+            <form id="addExamForm" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <input type="text" id="inputClass" placeholder="Rombel (Misal: X-1)" class="border p-2.5 rounded-lg text-sm" required>
+                <input type="text" id="inputSubject" placeholder="Mapel (Misal: Pancasila)" class="border p-2.5 rounded-lg text-sm" required>
+                <input type="url" id="inputUrl" placeholder="Link Google Form" class="border p-2.5 rounded-lg text-sm" required>
+                <button type="submit" class="bg-blue-600 text-white font-bold py-2.5 rounded-lg text-sm hover:bg-blue-700 transition">Simpan Link</button>
+            </form>
+        </div>
+
+    </div>
+
+    <!-- Script Javascript -->
+    <script src="supabase-config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
