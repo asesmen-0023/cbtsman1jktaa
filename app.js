@@ -1,10 +1,13 @@
-// --- ELEMEN DOM UTAMA ---
+// Mengambil instance Supabase dari config
+const supabase = window.supabaseClient;
+
+// ELEMEN DOM
 const loginModal = document.getElementById('loginModal');
 const dashboardApp = document.getElementById('dashboardApp');
 const adminLoginForm = document.getElementById('adminLoginForm');
 const logoutBtn = document.getElementById('logoutBtn');
 
-// --- 1. AUTENTIKASI ADMIN VIA DATABASE SUPABASE ---
+// 1. LOGIC LOGIN ADMIN VIA SUPABASE
 if (adminLoginForm) {
     adminLoginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -12,7 +15,6 @@ if (adminLoginForm) {
         const pass = document.getElementById('adminPass').value.trim();
 
         try {
-            // Cocokkan username & password ke tabel 'admins'
             const { data, error } = await supabase
                 .from('admins')
                 .select('*')
@@ -25,13 +27,11 @@ if (adminLoginForm) {
                 return;
             }
 
-            // Simpan Session Login
             sessionStorage.setItem('cbt_admin_logged', 'true');
             sessionStorage.setItem('cbt_admin_name', data.nama_proktor || 'Proktor SMAN 1 Jakarta');
-            
             initDashboard();
         } catch (err) {
-            alert('Terjadi kesalahan koneksi ke server: ' + err.message);
+            alert('Terjadi kesalahan koneksi: ' + err.message);
         }
     });
 }
@@ -60,7 +60,6 @@ function initDashboard() {
     fetchHistory();
 }
 
-// --- 2. NAVIGASI TAB MENU SIDEBAR ---
 function switchTab(tabName) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
     document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
@@ -72,13 +71,9 @@ function switchTab(tabName) {
     if (activeNav) activeNav.classList.add('active');
 }
 
-// --- 3. TAB 1: MONITORING PELANGGARAN REALTIME ---
+// 2. MONITORING PELANGGARAN REALTIME
 async function fetchViolations() {
-    const { data, error } = await supabase
-        .from('violations')
-        .select('*')
-        .order('created_at', { ascending: false });
-
+    const { data } = await supabase.from('violations').select('*').order('created_at', { ascending: false });
     const tbody = document.getElementById('violationTableBody');
     if (!tbody) return;
 
@@ -102,7 +97,7 @@ function subscribeViolations() {
         .subscribe();
 }
 
-// --- 4. TAB 2: MANAJEMEN SOAL & KONTROL TAYANG ---
+// 3. MANAJEMEN SOAL
 async function fetchExams() {
     const { data } = await supabase.from('exams').select('*').order('created_at', { ascending: false });
     const tbody = document.getElementById('examTableBody');
@@ -138,7 +133,7 @@ async function toggleExamStatus(id, newStatus) {
 }
 
 async function deleteExam(id) {
-    if (confirm('Apakah Anda yakin ingin menghapus soal ini?')) {
+    if (confirm('Hapus soal ini?')) {
         await supabase.from('exams').delete().eq('id', id);
         fetchExams();
     }
@@ -160,7 +155,7 @@ if (addExamForm) {
     });
 }
 
-// --- 5. TAB 3: DATABASE SISWA ---
+// 4. DATABASE SISWA
 async function fetchStudents() {
     const { data } = await supabase.from('students').select('*').order('student_class', { ascending: true });
     const tbody = document.getElementById('studentTableBody');
@@ -193,7 +188,7 @@ if (addStudentForm) {
     });
 }
 
-// --- 6. TAB 4: RIWAYAT PENGERJAAN & IZIN RE-TEST ---
+// 5. RIWAYAT PENGERJAAN SISWA
 async function fetchHistory() {
     const { data } = await supabase.from('submissions').select('*, exams(subject_name)').order('created_at', { ascending: false });
     const tbody = document.getElementById('historyTableBody');
@@ -227,5 +222,4 @@ async function toggleRetestPermission(id, newAllowed) {
     fetchHistory();
 }
 
-// Inisialisasi awal saat halaman dibuka
 document.addEventListener('DOMContentLoaded', checkAuth);
