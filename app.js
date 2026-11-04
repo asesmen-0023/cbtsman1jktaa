@@ -1,21 +1,24 @@
-// Mengambil instance Supabase dari config
-const supabase = window.supabaseClient;
+const getSupabase = () => window.supabaseClient || (window.supabase ? window.supabase.createClient('https://ulroqkrnwzzrgkasrqit.supabase.co', 'sb_publishable_DJm-HRJpia9X3CzOlBq61Q_Dqct-DPi') : null);
 
-// ELEMEN DOM
 const loginModal = document.getElementById('loginModal');
 const dashboardApp = document.getElementById('dashboardApp');
 const adminLoginForm = document.getElementById('adminLoginForm');
 const logoutBtn = document.getElementById('logoutBtn');
 
-// 1. LOGIC LOGIN ADMIN VIA SUPABASE
 if (adminLoginForm) {
     adminLoginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const user = document.getElementById('adminUser').value.trim();
         const pass = document.getElementById('adminPass').value.trim();
 
+        const client = getSupabase();
+        if (!client) {
+            alert('Koneksi Supabase belum siap, silakan refresh halaman.');
+            return;
+        }
+
         try {
-            const { data, error } = await supabase
+            const { data, error } = await client
                 .from('admins')
                 .select('*')
                 .eq('username', user)
