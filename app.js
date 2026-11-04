@@ -1,10 +1,13 @@
+// Fungsi pembantu untuk mengambil instance client Supabase secara aman
 const getSupabase = () => window.supabaseClient || (window.supabase ? window.supabase.createClient('https://ulroqkrnwzzrgkasrqit.supabase.co', 'sb_publishable_DJm-HRJpia9X3CzOlBq61Q_Dqct-DPi') : null);
 
+// ELEMEN DOM
 const loginModal = document.getElementById('loginModal');
 const dashboardApp = document.getElementById('dashboardApp');
 const adminLoginForm = document.getElementById('adminLoginForm');
 const logoutBtn = document.getElementById('logoutBtn');
 
+// 1. LOGIC LOGIN ADMIN VIA SUPABASE
 if (adminLoginForm) {
     adminLoginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -54,8 +57,8 @@ function checkAuth() {
 }
 
 function initDashboard() {
-    loginModal.classList.add('hidden');
-    dashboardApp.classList.remove('hidden');
+    if (loginModal) loginModal.classList.add('hidden');
+    if (dashboardApp) dashboardApp.classList.remove('hidden');
     fetchViolations();
     subscribeViolations();
     fetchExams();
@@ -76,7 +79,10 @@ function switchTab(tabName) {
 
 // 2. MONITORING PELANGGARAN REALTIME
 async function fetchViolations() {
-    const { data } = await supabase.from('violations').select('*').order('created_at', { ascending: false });
+    const client = getSupabase();
+    if (!client) return;
+
+    const { data } = await client.from('violations').select('*').order('created_at', { ascending: false });
     const tbody = document.getElementById('violationTableBody');
     if (!tbody) return;
 
@@ -95,14 +101,20 @@ async function fetchViolations() {
 }
 
 function subscribeViolations() {
-    supabase.channel('realtime:violations')
+    const client = getSupabase();
+    if (!client) return;
+
+    client.channel('realtime:violations')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'violations' }, () => fetchViolations())
         .subscribe();
 }
 
 // 3. MANAJEMEN SOAL
 async function fetchExams() {
-    const { data } = await supabase.from('exams').select('*').order('created_at', { ascending: false });
+    const client = getSupabase();
+    if (!client) return;
+
+    const { data } = await client.from('exams').select('*').order('created_at', { ascending: false });
     const tbody = document.getElementById('examTableBody');
     if (!tbody) return;
 
@@ -131,13 +143,17 @@ async function fetchExams() {
 }
 
 async function toggleExamStatus(id, newStatus) {
-    await supabase.from('exams').update({ is_active: newStatus }).eq('id', id);
+    const client = getSupabase();
+    if (!client) return;
+    await client.from('exams').update({ is_active: newStatus }).eq('id', id);
     fetchExams();
 }
 
 async function deleteExam(id) {
     if (confirm('Hapus soal ini?')) {
-        await supabase.from('exams').delete().eq('id', id);
+        const client = getSupabase();
+        if (!client) return;
+        await client.from('exams').delete().eq('id', id);
         fetchExams();
     }
 }
@@ -146,13 +162,16 @@ const addExamForm = document.getElementById('addExamForm');
 if (addExamForm) {
     addExamForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const client = getSupabase();
+        if (!client) return;
+
         const student_class = document.getElementById('inputClass').value.trim();
         const subject_name = document.getElementById('inputSubject').value.trim();
         const form_url = document.getElementById('inputUrl').value.trim();
         const start_time = document.getElementById('inputStartTime').value || null;
         const end_time = document.getElementById('inputEndTime').value || null;
 
-        await supabase.from('exams').insert([{ student_class, subject_name, form_url, start_time, end_time }]);
+        await client.from('exams').insert([{ student_class, subject_name, form_url, start_time, end_time }]);
         addExamForm.reset();
         fetchExams();
     });
@@ -160,7 +179,10 @@ if (addExamForm) {
 
 // 4. DATABASE SISWA
 async function fetchStudents() {
-    const { data } = await supabase.from('students').select('*').order('student_class', { ascending: true });
+    const client = getSupabase();
+    if (!client) return;
+
+    const { data } = await client.from('students').select('*').order('student_class', { ascending: true });
     const tbody = document.getElementById('studentTableBody');
     if (!tbody) return;
 
@@ -181,11 +203,14 @@ const addStudentForm = document.getElementById('addStudentForm');
 if (addStudentForm) {
     addStudentForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const client = getSupabase();
+        if (!client) return;
+
         const nisn = document.getElementById('inputStudentNisn').value.trim();
         const nama = document.getElementById('inputStudentName').value.trim();
         const student_class = document.getElementById('inputStudentClass').value.trim();
 
-        await supabase.from('students').insert([{ nisn, nama, student_class }]);
+        await client.from('students').insert([{ nisn, nama, student_class }]);
         addStudentForm.reset();
         fetchStudents();
     });
@@ -193,7 +218,10 @@ if (addStudentForm) {
 
 // 5. RIWAYAT PENGERJAAN SISWA
 async function fetchHistory() {
-    const { data } = await supabase.from('submissions').select('*, exams(subject_name)').order('created_at', { ascending: false });
+    const client = getSupabase();
+    if (!client) return;
+
+    const { data } = await client.from('submissions').select('*, exams(subject_name)').order('created_at', { ascending: false });
     const tbody = document.getElementById('historyTableBody');
     if (!tbody) return;
 
@@ -221,7 +249,9 @@ async function fetchHistory() {
 }
 
 async function toggleRetestPermission(id, newAllowed) {
-    await supabase.from('submissions').update({ is_allowed_retest: newAllowed }).eq('id', id);
+    const client = getSupabase();
+    if (!client) return;
+    await client.from('submissions').update({ is_allowed_retest: newAllowed }).eq('id', id);
     fetchHistory();
 }
 
