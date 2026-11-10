@@ -236,7 +236,6 @@ async function saveGlobalSettings() {
     }
 }
 
-
 // ==========================================
 // 2. MANAJEMEN SOAL
 // ==========================================
@@ -512,7 +511,7 @@ function openAddStudentModal() {
 }
 
 async function deleteSelectedStudents() {
-    const selectedIds = Array.from(document.querySelectorAll('.student-checkbox:checked')).map(cb => cb.value);
+    const selectedIds = Array.from(document.querySelectorAll('.student-checkbox:checked')).map(cb => parseInt(cb.value)).filter(Boolean);
     if (!selectedIds.length) {
         showModernAlert('Pilih minimal satu siswa untuk dihapus!', 'Peringatan', 'error');
         return;
@@ -645,3 +644,77 @@ async function handleExcelImport() {
 
     reader.readAsArrayBuffer(file);
 }
+
+// ==========================================
+// 4. RIWAYAT PENGERJAAN SISWA (EXAM_SUBMISSIONS)
+// ==========================================
+async function fetchHistory() {
+    const client = getSupabase();
+    if (!client) return;
+
+    const { data, error } = await client
+        .from('exam_submissions')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+    const tbody = document.getElementById('historyTableBody');
+    if (!tbody) return;
+
+    if (!error && data && data.length > 0) {
+        tbody.innerHTML = data.map(h => `
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                <td class="p-4 font-mono font-bold text-slate-700">${h.nisn}</td>
+                <td class="p-4 font-semibold text-slate-700">${h.student_name || 'Siswa'}</td>
+                <td class="p-4 font-bold"><span class="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-md text-xs">${h.student_class}</span></td>
+                <td class="p-4">
+                    <span class="px-2.5 py-1 rounded-full text-xs font-bold ${h.is_completed ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
+                        ${h.is_completed ? 'Terkunci (Selesai)' : 'Sedang Mengerjakan'}
+                    </span>
+                </td>
+                <td class="p-4 space-x-2">
+                    <button onclick="toggleRetestPermission(${h.id}, ${!h.is_completed})" class="text-xs bg-slate-800 hover:bg-slate-900 text-white font-semibold px-3 py-1.5 rounded-lg transition">
+                        ${h.is_completed ? 'Izinkan Ujian Ulang' : 'Kunci Ujian'}
+                    </button>
+                    <button onclick="deleteSubmission(${h.id})" class="text-xs bg-red-50 text-red-600 font-semibold px-3 py-1.5 rounded-lg hover:bg-red-100 transition">
+                        Hapus
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    } else {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400">Belum ada riwayat pengerjaan siswa</td></tr>`;
+    }
+}
+
+async function deleteSubmission(id) {
+    showModernConfirm('Hapus riwayat pengerjaan siswa ini? Siswa akan dapat mengerjakan ujian dari awal.', 'Hapus Riwayat', async () => {
+        const client = getSupabase();
+        if (!client) return;
+        await client.from('exam_submissions').delete().eq('id', id);
+        fetchHistory();
+    });
+}
+
+async function deleteAllSubmissions() {
+    showModernConfirm('Apakah Anda yakin ingin MENGHAPUS SEMUA riwayat pengerjaan siswa?', 'Hapus Masal Riwayat', async () => {
+        const client = getSupabase();
+        if (!client) return;
+
+        const { error } = await client.from('exam_submissions').delete().neq('id', 0);
+        if (!error) {
+            showModernAlert('Semua riwayat pengerjaan berhasil dibersihkan!', 'Berhasil', 'success');
+            fetchHistory();
+        } else {
+            showModernAlert('Gagal menghapus data: ' + error.message, 'Gagal', 'error');
+        }
+    });
+}
+
+async function toggleRetestPermission(id, newCompletedState) {
+    const client = getSupabase();
+    if (!client) return;
+    await client.from('exam_submissions').update({ is_completed: newCompletedState }).eq('id', id);
+    fetchHistory();
+}
+
+document.addEventListener('DOMContentLoaded', checkAuth);
