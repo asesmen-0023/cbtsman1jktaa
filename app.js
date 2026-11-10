@@ -449,32 +449,194 @@ if (addExamForm) {
 }
 
 // ==========================================
-// 3. DATABASE SISWA
+// 3. DATABASE SISWA (MODEL DESAIN BARU: PAGINASI & FILTER)
 // ==========================================
+let allStudentsData = [];
+let filteredStudentsData = [];
+let currentStudentPage = 1;
+let rowsPerPage = 25;
+
 async function fetchStudents() {
     const client = getSupabase();
     if (!client) return;
 
-    const { data } = await client.from('students').select('*').order('student_class', { ascending: true });
+    const { data, error } = await client.from('students').select('*').order('nama', { ascending: true });
+    
+    if (!error && data) {
+        allStudentsData = data;
+        populateClassFilterOptions();
+        filterStudents();
+    } else {
+        allStudentsData = [];
+        renderStudentTable();
+    }
+}
+
+function populateClassFilterOptions() {
+    const select = document.getElementById('filterClassSelect');
+    if (!select) return;
+
+    const currentVal = select.value;
+    const classes = [...new Set(allStudentsData.map(s => s.student_class).filter(Boolean))].sort();
+
+    select.innerHTML = `<option value="">Semua Kelas / Rombel</option>` + 
+        classes.map(c => `<option value="${c}">${c}</option>`).join('');
+
+    select.value = currentVal;
+}
+
+function filterStudents() {
+    const searchVal = document.getElementById('searchStudentInput')?.value.toLowerCase().trim() || '';
+    const classVal = document.getElementById('filterClassSelect')?.value || '';
+
+    filteredStudentsData = allStudentsData.filter(s => {
+        const matchesSearch = !searchVal || 
+            (s.nisn && s.nisn.toLowerCase().includes(searchVal)) || 
+            (s.nama && s.nama.toLowerCase().includes(searchVal));
+
+        const matchesClass = !classVal || s.student_class === classVal;
+
+        return matchesSearch && matchesClass;
+    });
+
+    currentStudentPage = 1;
+    updateSesiCounters();
+    renderStudentTable();
+}
+
+function updateSesiCounters() {
+    const countSesi1 = allStudentsData.filter((_, idx) => idx % 2 === 0).length;
+    const countSesi2 = allStudentsData.length - countSesi1;
+
+    const lbl1 = document.getElementById('lblCountSesi1');
+    const lbl2 = document.getElementById('lblCountSesi2');
+    const bar1 = document.getElementById('barSesi1');
+    const bar2 = document.getElementById('barSesi2');
+
+    if (lbl1) lbl1.innerText = `${countSesi1} (${allStudentsData.length ? Math.round(countSesi1/allStudentsData.length*100) : 0}%)`;
+    if (lbl2) lbl2.innerText = `${countSesi2} (${allStudentsData.length ? Math.round(countSesi2/allStudentsData.length*100) : 0}%)`;
+
+    if (bar1 && bar2 && allStudentsData.length > 0) {
+        bar1.style.width = `${(countSesi1/allStudentsData.length)*100}%`;
+        bar2.style.width = `${(countSesi2/allStudentsData.length)*100}%`;
+    }
+}
+
+function renderStudentTable() {
     const tbody = document.getElementById('studentTableBody');
     if (!tbody) return;
 
-    if (data && data.length > 0) {
-        tbody.innerHTML = data.map(s => `
+    const total = filteredStudentsData.length;
+    const totalPages = Math.ceil(total / rowsPerPage) || 1;
+
+    if (currentStudentPage < 1) currentStudentPage = 1;
+    if (currentStudentPage > totalPages) currentStudentPage = totalPages;
+
+    const startIdx = (currentStudentPage - 1) * rowsPerPage;
+    const endIdx = Math.min(startIdx + rowsPerPage, total);
+
+    const pageData = filteredStudentsData.slice(startIdx, endIdx);
+
+    if (pageData.length > 0) {
+        tbody.innerHTML = pageData.map((s, index) => {
+            const sesiName = (startIdx + index) % 2 === 0 ? "Sesi 1" : "Sesi 2";
+            return `
             <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-                <td class="p-4 font-mono font-bold text-slate-700">${s.nisn}</td>
-                <td class="p-4 font-semibold">${s.nama}</td>
-                <td class="p-4"><span class="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-md text-xs font-bold">${s.student_class}</span></td>
-                <td class="p-4 font-mono text-xs text-slate-500">${s.password || '<i class="text-slate-300">Sama dengan NISN</i>'}</td>
-                <td class="p-4 space-x-2">
-                    <button onclick='openEditStudentModal(${JSON.stringify(s)})' class="text-xs bg-amber-50 text-amber-700 font-semibold px-3 py-1.5 rounded-lg hover:bg-amber-100 transition">Edit</button>
-                    <button onclick="deleteStudent(${s.id})" class="text-xs bg-red-50 text-red-600 font-semibold px-3 py-1.5 rounded-lg hover:bg-red-100 transition">Hapus</button>
+                <td class="p-3 text-center">
+                    <input type="checkbox" value="${s.id}" class="student-checkbox rounded border-slate-300 text-blue-600 focus:ring-blue-500">
                 </td>
-            </tr>
-        `).join('');
+                <td class="p-3 font-mono font-bold text-slate-800">${s.nisn}</td>
+                <td class="p-3 font-bold text-slate-800 uppercase">${s.nama}</td>
+                <td class="p-3 font-semibold text-slate-600">${s.student_class}</td>
+                <td class="p-3 text-slate-500">Pendidikan Pancasila</td>
+                <td class="p-3 text-slate-500">Ujian CBT Utama</td>
+                <td class="p-3">
+                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold ${sesiName === 'Sesi 1' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}">
+                        ${sesiName}
+                    </span>
+                </td>
+                <td class="p-3 text-center space-x-1">
+                    <button onclick='openEditStudentModal(${JSON.stringify(s)})' class="p-1.5 text-slate-500 hover:text-amber-600 rounded-lg hover:bg-amber-50 transition" title="Edit Data">
+                        ✏️
+                    </button>
+                    <button onclick="deleteStudent(${s.id})" class="p-1.5 text-slate-500 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition" title="Hapus Siswa">
+                        🗑️
+                    </button>
+                </td>
+            </tr>`;
+        }).join('');
     } else {
-        tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400">Belum ada data siswa</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-slate-400">Tidak ada data siswa ditemukan</td></tr>`;
     }
+
+    const info = document.getElementById('studentPaginationInfo');
+    if (info) {
+        info.innerText = total > 0 
+            ? `${startIdx + 1}-${endIdx} dari ${total} siswa` 
+            : `0 dari 0 siswa`;
+    }
+
+    const lblPage = document.getElementById('lblCurrentPage');
+    if (lblPage) lblPage.innerText = `Hal ${currentStudentPage} / ${totalPages}`;
+
+    const btnPrev = document.getElementById('btnPrevPage');
+    const btnNext = document.getElementById('btnNextPage');
+
+    if (btnPrev) btnPrev.disabled = (currentStudentPage <= 1);
+    if (btnNext) btnNext.disabled = (currentStudentPage >= totalPages);
+
+    const selectAll = document.getElementById('selectAllCheckbox');
+    if (selectAll) selectAll.checked = false;
+}
+
+function changeRowsPerPage(val) {
+    rowsPerPage = parseInt(val) || 25;
+    currentStudentPage = 1;
+    renderStudentTable();
+}
+
+function prevStudentPage() {
+    if (currentStudentPage > 1) {
+        currentStudentPage--;
+        renderStudentTable();
+    }
+}
+
+function nextStudentPage() {
+    const totalPages = Math.ceil(filteredStudentsData.length / rowsPerPage) || 1;
+    if (currentStudentPage < totalPages) {
+        currentStudentPage++;
+        renderStudentTable();
+    }
+}
+
+function toggleSelectAllStudents(master) {
+    document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = master.checked);
+}
+
+function openAddStudentModal() {
+    document.getElementById('addStudentModal')?.classList.remove('hidden');
+}
+
+async function deleteSelectedStudents() {
+    const selectedIds = Array.from(document.querySelectorAll('.student-checkbox:checked')).map(cb => cb.value);
+    if (!selectedIds.length) {
+        showModernAlert('Pilih minimal satu siswa untuk dihapus!', 'Peringatan', 'error');
+        return;
+    }
+
+    showModernConfirm(`Apakah Anda yakin ingin menghapus ${selectedIds.length} data siswa terpilih?`, 'Hapus Masal Siswa', async () => {
+        const client = getSupabase();
+        if (!client) return;
+
+        const { error } = await client.from('students').delete().in('id', selectedIds);
+        if (!error) {
+            showModernAlert(`${selectedIds.length} data siswa berhasil dihapus!`, 'Berhasil', 'success');
+            fetchStudents();
+        } else {
+            showModernAlert('Gagal menghapus data: ' + error.message, 'Gagal', 'error');
+        }
+    });
 }
 
 async function deleteStudent(id) {
@@ -529,6 +691,7 @@ if (addStudentForm) {
 
         await client.from('students').insert([{ nisn, nama, student_class, password }]);
         addStudentForm.reset();
+        closeEditModal('addStudentModal');
         fetchStudents();
         showModernAlert('Data siswa baru berhasil ditambahkan!', 'Berhasil', 'success');
     });
@@ -589,78 +752,3 @@ async function handleExcelImport() {
 
     reader.readAsArrayBuffer(file);
 }
-
-// ==========================================
-// 4. RIWAYAT PENGERJAAN SISWA (EXAM_SUBMISSIONS)
-// ==========================================
-async function fetchHistory() {
-    const client = getSupabase();
-    if (!client) return;
-
-    // Disesuaikan dengan tabel exam_submissions pada Supabase
-    const { data, error } = await client
-        .from('exam_submissions')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-    const tbody = document.getElementById('historyTableBody');
-    if (!tbody) return;
-
-    if (!error && data && data.length > 0) {
-        tbody.innerHTML = data.map(h => `
-            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-                <td class="p-4 font-mono font-bold text-slate-700">${h.nisn}</td>
-                <td class="p-4 font-semibold text-slate-700">${h.student_name || 'Siswa'}</td>
-                <td class="p-4 font-bold"><span class="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-md text-xs">${h.student_class}</span></td>
-                <td class="p-4">
-                    <span class="px-2.5 py-1 rounded-full text-xs font-bold ${h.is_completed ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
-                        ${h.is_completed ? 'Terkunci (Selesai)' : 'Sedang Mengerjakan'}
-                    </span>
-                </td>
-                <td class="p-4 space-x-2">
-                    <button onclick="toggleRetestPermission(${h.id}, ${!h.is_completed})" class="text-xs bg-slate-800 hover:bg-slate-900 text-white font-semibold px-3 py-1.5 rounded-lg transition">
-                        ${h.is_completed ? 'Izinkan Ujian Ulang' : 'Kunci Ujian'}
-                    </button>
-                    <button onclick="deleteSubmission(${h.id})" class="text-xs bg-red-50 text-red-600 font-semibold px-3 py-1.5 rounded-lg hover:bg-red-100 transition">
-                        Hapus
-                    </button>
-                </td>
-            </tr>
-        `).join('');
-    } else {
-        tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400">Belum ada riwayat pengerjaan siswa</td></tr>`;
-    }
-}
-
-async function deleteSubmission(id) {
-    showModernConfirm('Hapus riwayat pengerjaan siswa ini? Siswa akan dapat mengerjakan ujian dari awal.', 'Hapus Riwayat', async () => {
-        const client = getSupabase();
-        if (!client) return;
-        await client.from('exam_submissions').delete().eq('id', id);
-        fetchHistory();
-    });
-}
-
-async function deleteAllSubmissions() {
-    showModernConfirm('Apakah Anda yakin ingin MENGHAPUS SEMUA riwayat pengerjaan siswa?', 'Hapus Masal Riwayat', async () => {
-        const client = getSupabase();
-        if (!client) return;
-
-        const { error } = await client.from('exam_submissions').delete().neq('id', 0);
-        if (!error) {
-            showModernAlert('Semua riwayat pengerjaan berhasil dibersihkan!', 'Berhasil', 'success');
-            fetchHistory();
-        } else {
-            showModernAlert('Gagal menghapus data: ' + error.message, 'Gagal', 'error');
-        }
-    });
-}
-
-async function toggleRetestPermission(id, newCompletedState) {
-    const client = getSupabase();
-    if (!client) return;
-    await client.from('exam_submissions').update({ is_completed: newCompletedState }).eq('id', id);
-    fetchHistory();
-}
-
-document.addEventListener('DOMContentLoaded', checkAuth);
