@@ -69,7 +69,7 @@
         <!-- Main Content -->
         <main class="flex-1 p-6 md:p-10 overflow-y-auto">
 
-            <!-- TAB 1: MANAJEMEN SOAL (DEFAULT UNTUK TAB PERTAMA) -->
+            <!-- TAB 1: MANAJEMEN SOAL -->
             <section id="tab-exams" class="tab-content">
                 <h2 class="text-2xl font-bold mb-6">Manajemen Soal Ujian</h2>
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8">
@@ -108,9 +108,9 @@
                 </div>
             </section>
 
-            <!-- TAB 2: DATABASE SISWA (DENGAN DESAIN FILTER & PAGINASI) -->
+            <!-- TAB 2: DATABASE SISWA -->
             <section id="tab-students" class="tab-content hidden">
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                     <div>
                         <h2 class="text-2xl font-black text-slate-800">Siswa</h2>
                         <p class="text-xs text-slate-500">Upload roster (NISN + nama) di sini. Klik ikon ✏️ untuk atur data tiap siswa.</p>
@@ -125,23 +125,25 @@
                     </div>
                 </div>
 
-                <!-- Progress Bar Sesi -->
-                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span> Sesi 1: <strong id="lblCountSesi1" class="text-slate-700">0</strong></span>
-                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Sesi 2: <strong id="lblCountSesi2" class="text-slate-700">0</strong></span>
+                <!-- Filter & Sort Toolbar -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                    <div class="relative">
+                        <input type="text" id="searchStudentInput" onkeyup="filterStudents()" placeholder="Cari NISN / nama..." class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <select id="filterClassSelect" onchange="filterStudents()" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="">Semua Kelas / Rombel</option>
+                        </select>
+                    </div>
+                    <div>
+                        <select id="sortStudentSelect" onchange="filterStudents()" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="nama_asc">Urutkan: Nama (A - Z)</option>
+                            <option value="nama_desc">Urutkan: Nama (Z - A)</option>
+                            <option value="nisn_asc">Urutkan: NISN (Kecil - Besar)</option>
+                            <option value="class_asc">Urutkan: Kelas / Rombel</option>
+                        </select>
+                    </div>
                 </div>
-
-                <!-- Filter Toolbar -->
-<div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-    <div class="relative">
-        <input type="text" id="searchStudentInput" onkeyup="filterStudents()" placeholder="Cari NISN / nama..." class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
-    </div>
-    <div>
-        <select id="filterClassSelect" onchange="filterStudents()" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-blue-500 outline-none">
-            <option value="">Semua Kelas / Rombel</option>
-        </select>
-    </div>
-    
-</div>
 
                 <div class="flex flex-wrap items-center gap-2 mb-4">
                     <label for="excelFileInput" class="cursor-pointer bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-lg transition">
@@ -157,19 +159,19 @@
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-x-auto mb-4">
                     <table class="w-full text-left border-collapse text-xs">
                         <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider text-[11px]">
-    <tr>
-        <th class="p-3 w-10 text-center">
-            <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAllStudents(this)" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-        </th>
-        <th class="p-3 font-bold">NISN</th>
-        <th class="p-3 font-bold">NAMA LENGKAP</th>
-        <th class="p-3 font-bold">ROMBEL / KELAS</th>
-        <th class="p-3 font-bold">PASSWORD</th>
-        <th class="p-3 font-bold text-center">AKSI</th>
-    </tr>
-</thead>
+                            <tr>
+                                <th class="p-3 w-10 text-center">
+                                    <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAllStudents(this)" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                                </th>
+                                <th class="p-3 font-bold">NISN</th>
+                                <th class="p-3 font-bold">NAMA LENGKAP</th>
+                                <th class="p-3 font-bold">ROMBEL / KELAS</th>
+                                <th class="p-3 font-bold">PASSWORD</th>
+                                <th class="p-3 font-bold text-center">AKSI</th>
+                            </tr>
+                        </thead>
                         <tbody id="studentTableBody" class="divide-y divide-slate-100 font-medium text-slate-700">
-                            <tr><td colspan="8" class="p-6 text-center text-slate-400">Memuat data siswa...</td></tr>
+                            <tr><td colspan="6" class="p-6 text-center text-slate-400">Memuat data siswa...</td></tr>
                         </tbody>
                     </table>
                 </div>
