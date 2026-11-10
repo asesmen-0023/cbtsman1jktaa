@@ -18,7 +18,7 @@ function switchAdminServer(serverKey) {
         ? SUPABASE_SERVERS[serverKey].name 
         : serverKey;
         
-    showModernAlert(`Berhasil beralih ke Database Server ${serverName}`, 'Server Berkelanjutan', 'success');
+    showModernAlert(`Berhasil beralih ke Database Server ${serverName}`, 'Pindah Kelas', 'success');
 }
 
 // ELEMEN DOM LOG IN & UI
