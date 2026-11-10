@@ -6,8 +6,8 @@
     <title>CBT Panel Admin - SMAN 1 Jakarta</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Library SheetJS untuk baca file Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="style.css">
     <script src="supabase-config.js"></script>
 </head>
 <body class="bg-slate-100 font-sans text-slate-800">
@@ -55,8 +55,7 @@
                 </div>
 
                 <nav class="space-y-2">
-                    <button onclick="switchTab('monitoring')" id="nav-monitoring" class="nav-btn w-full text-left p-3 rounded-xl text-sm font-semibold hover:bg-slate-800 transition active">📡 Live Monitoring</button>
-                    <button onclick="switchTab('exams')" id="nav-exams" class="nav-btn w-full text-left p-3 rounded-xl text-sm font-semibold hover:bg-slate-800 transition">📝 Manajemen Soal</button>
+                    <button onclick="switchTab('exams')" id="nav-exams" class="nav-btn w-full text-left p-3 rounded-xl text-sm font-semibold hover:bg-slate-800 transition active">📝 Manajemen Soal</button>
                     <button onclick="switchTab('students')" id="nav-students" class="nav-btn w-full text-left p-3 rounded-xl text-sm font-semibold hover:bg-slate-800 transition">🎓 Database Siswa</button>
                     <button onclick="switchTab('history')" id="nav-history" class="nav-btn w-full text-left p-3 rounded-xl text-sm font-semibold hover:bg-slate-800 transition">📊 Riwayat Ujian</button>
                     <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn w-full text-left p-3 rounded-xl text-sm font-semibold hover:bg-slate-800 transition">⚙️ Pengaturan CBT</button>
@@ -69,41 +68,9 @@
 
         <!-- Main Content -->
         <main class="flex-1 p-6 md:p-10 overflow-y-auto">
-            
-            <!-- TAB 1: LIVE MONITORING -->
-            <section id="tab-monitoring" class="tab-content">
-                <div class="flex items-center justify-between mb-6">
-                    <div>
-                        <h2 class="text-2xl font-bold">Real-time Monitoring Pelanggaran</h2>
-                        <p class="text-xs text-slate-500">Laporan siswa yang keluar/ditinggalkan dari aplikasi CBT</p>
-                    </div>
-                    <div class="flex items-center space-x-3">
-                        <button onclick="deleteAllViolations()" class="bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 text-xs font-bold px-3.5 py-2 rounded-xl transition">
-                            🗑️ Hapus Semua Pelanggaran
-                        </button>
-                        <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1.5 rounded-full">Live Connected</span>
-                    </div>
-                </div>
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <table class="w-full text-left border-collapse text-sm">
-                        <thead class="bg-slate-50 border-b border-slate-200 text-slate-500">
-                            <tr>
-                                <th class="p-4 font-bold">Waktu</th>
-                                <th class="p-4 font-bold">NISN</th>
-                                <th class="p-4 font-bold">Kelas</th>
-                                <th class="p-4 font-bold">Jenis Pelanggaran</th>
-                                <th class="p-4 font-bold">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody id="violationTableBody">
-                            <tr><td colspan="5" class="p-6 text-center text-slate-400">Memuat data...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
 
-            <!-- TAB 2: MANAJEMEN SOAL -->
-            <section id="tab-exams" class="tab-content hidden">
+            <!-- TAB 1: MANAJEMEN SOAL (DEFAULT UNTUK TAB PERTAMA) -->
+            <section id="tab-exams" class="tab-content">
                 <h2 class="text-2xl font-bold mb-6">Manajemen Soal Ujian</h2>
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8">
                     <h3 class="font-bold text-slate-700 mb-4">Buat / Tambah Link Soal Ujian Baru</h3>
@@ -141,145 +108,111 @@
                 </div>
             </section>
 
-            <!-- TAB 3: DATABASE SISWA -->
-            <!-- TAB 3: DATABASE SISWA (MODEL MODERN DESAIN BARU) -->
-<section id="tab-students" class="tab-content hidden">
-    <!-- Header Page -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-        <div>
-            <h2 class="text-2xl font-black text-slate-800">Siswa</h2>
-            <p class="text-xs text-slate-500">Upload roster (NISN + nama) di sini. Klik ikon 📝 untuk atur mapel pilihan & sesi login tiap siswa.</p>
-        </div>
-        <div class="flex items-center space-x-2">
-            <button onclick="downloadExcelTemplate()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-3.5 py-2 rounded-lg transition flex items-center gap-1.5">
-                <span>📊</span> Bulk Edit / Import Excel
-            </button>
-            <button onclick="openAddStudentModal()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition flex items-center gap-1">
-                <span>+</span> Tambah
-            </button>
-        </div>
-    </div>
+            <!-- TAB 2: DATABASE SISWA (DENGAN DESAIN FILTER & PAGINASI) -->
+            <section id="tab-students" class="tab-content hidden">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                    <div>
+                        <h2 class="text-2xl font-black text-slate-800">Siswa</h2>
+                        <p class="text-xs text-slate-500">Upload roster (NISN + nama) di sini. Klik ikon ✏️ untuk atur data tiap siswa.</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="downloadExcelTemplate()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-3.5 py-2 rounded-lg transition flex items-center gap-1.5">
+                            <span>📊</span> Bulk Edit / Import Excel
+                        </button>
+                        <button onclick="openAddStudentModal()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition flex items-center gap-1">
+                            <span>+</span> Tambah
+                        </button>
+                    </div>
+                </div>
 
-    <!-- Progress Indicator Bar Sesi (Opsional/Styling UI) -->
-    <div class="bg-slate-200 h-2.5 rounded-full overflow-hidden flex mb-2">
-        <div id="barSesi1" class="bg-blue-600 h-full" style="width: 50%;"></div>
-        <div id="barSesi2" class="bg-emerald-500 h-full" style="width: 50%;"></div>
-    </div>
-    <div class="flex items-center space-x-4 text-xs font-semibold text-slate-500 mb-4">
-        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span> Sesi 1: <strong id="lblCountSesi1" class="text-slate-700">0</strong></span>
-        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Sesi 2: <strong id="lblCountSesi2" class="text-slate-700">0</strong></span>
-    </div>
+                <!-- Progress Bar Sesi -->
+                <div class="bg-slate-200 h-2.5 rounded-full overflow-hidden flex mb-2">
+                    <div id="barSesi1" class="bg-blue-600 h-full" style="width: 50%;"></div>
+                    <div id="barSesi2" class="bg-emerald-500 h-full" style="width: 50%;"></div>
+                </div>
+                <div class="flex items-center space-x-4 text-xs font-semibold text-slate-500 mb-4">
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span> Sesi 1: <strong id="lblCountSesi1" class="text-slate-700">0</strong></span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Sesi 2: <strong id="lblCountSesi2" class="text-slate-700">0</strong></span>
+                </div>
 
-    <!-- Filter & Action Toolbar -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-        <div class="relative">
-            <input type="text" id="searchStudentInput" onkeyup="filterStudents()" placeholder="Cari NISN / nama..." class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
-        </div>
-        <div>
-            <select id="filterClassSelect" onchange="filterStudents()" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-blue-500 outline-none">
-                <option value="">Semua Kelas / Rombel</option>
-            </select>
-        </div>
-        <div>
-            <select id="filterSesiSelect" onchange="filterStudents()" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-blue-500 outline-none">
-                <option value="">Semua Sesi</option>
-                <option value="Sesi 1">Sesi 1</option>
-                <option value="Sesi 2">Sesi 2</option>
-            </select>
-        </div>
-    </div>
+                <!-- Filter Toolbar -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                    <div class="relative">
+                        <input type="text" id="searchStudentInput" onkeyup="filterStudents()" placeholder="Cari NISN / nama..." class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <select id="filterClassSelect" onchange="filterStudents()" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="">Semua Kelas / Rombel</option>
+                        </select>
+                    </div>
+                    <div>
+                        <select id="filterSesiSelect" onchange="filterStudents()" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="">Semua Sesi</option>
+                            <option value="Sesi 1">Sesi 1</option>
+                            <option value="Sesi 2">Sesi 2</option>
+                        </select>
+                    </div>
+                </div>
 
-    <!-- Import Hidden Action Bar -->
-    <div class="flex flex-wrap items-center gap-2 mb-4">
-        <label for="excelFileInput" class="cursor-pointer bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-lg transition">
-            📁 Pilih Berkas Excel
-        </label>
-        <input type="file" id="excelFileInput" accept=".xlsx, .xls" class="hidden" onchange="handleExcelImport()">
-        <button onclick="deleteSelectedStudents()" class="bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 text-xs font-bold px-3 py-1.5 rounded-lg transition">
-            🗑️ Hapus Terpilih
-        </button>
-    </div>
+                <div class="flex flex-wrap items-center gap-2 mb-4">
+                    <label for="excelFileInput" class="cursor-pointer bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-lg transition">
+                        📁 Pilih Berkas Excel
+                    </label>
+                    <input type="file" id="excelFileInput" accept=".xlsx, .xls" class="hidden" onchange="handleExcelImport()">
+                    <button onclick="deleteSelectedStudents()" class="bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 text-xs font-bold px-3 py-1.5 rounded-lg transition">
+                        🗑️ Hapus Terpilih
+                    </button>
+                </div>
 
-    <!-- Data Table Siswa -->
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-x-auto mb-4">
-        <table class="w-full text-left border-collapse text-xs">
-            <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider text-[11px]">
-                <tr>
-                    <th class="p-3 w-10 text-center">
-                        <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAllStudents(this)" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-                    </th>
-                    <th class="p-3 font-bold">NISN</th>
-                    <th class="p-3 font-bold">NAMA</th>
-                    <th class="p-3 font-bold">KELAS</th>
-                    <th class="p-3 font-bold">MAPEL 1</th>
-                    <th class="p-3 font-bold">MAPEL 2</th>
-                    <th class="p-3 font-bold">SESI</th>
-                    <th class="p-3 font-bold text-center">AKSI</th>
-                </tr>
-            </thead>
-            <tbody id="studentTableBody" class="divide-y divide-slate-100 font-medium text-slate-700">
-                <tr><td colspan="8" class="p-6 text-center text-slate-400">Memuat data siswa...</td></tr>
-            </tbody>
-        </table>
-    </div>
+                <!-- Data Table Siswa -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-x-auto mb-4">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider text-[11px]">
+                            <tr>
+                                <th class="p-3 w-10 text-center">
+                                    <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAllStudents(this)" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                                </th>
+                                <th class="p-3 font-bold">NISN</th>
+                                <th class="p-3 font-bold">NAMA</th>
+                                <th class="p-3 font-bold">KELAS</th>
+                                <th class="p-3 font-bold">MAPEL 1</th>
+                                <th class="p-3 font-bold">MAPEL 2</th>
+                                <th class="p-3 font-bold">SESI</th>
+                                <th class="p-3 font-bold text-center">AKSI</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentTableBody" class="divide-y divide-slate-100 font-medium text-slate-700">
+                            <tr><td colspan="8" class="p-6 text-center text-slate-400">Memuat data siswa...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
 
-    <!-- Footer Controls: Counter Rows & Pagination -->
-    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-        <div id="studentPaginationInfo">
-            Menampilkan 0 - 0 dari 0 siswa
-        </div>
-        <div class="flex items-center space-x-3">
-            <div class="flex items-center space-x-1">
-                <select id="rowsPerPageSelect" onchange="changeRowsPerPage(this.value)" class="bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 outline-none">
-                    <option value="10">10 / hal</option>
-                    <option value="25" selected>25 / hal</option>
-                    <option value="50">50 / hal</option>
-                    <option value="100">100 / hal</option>
-                </select>
-            </div>
-            <div class="flex items-center space-x-1">
-                <button id="btnPrevPage" onclick="prevStudentPage()" class="bg-white border border-slate-300 text-slate-600 hover:bg-slate-50 px-3 py-1 rounded-lg font-bold disabled:opacity-40 disabled:cursor-not-allowed">
-                    &lt; Sebelumnya
-                </button>
-                <span id="lblCurrentPage" class="font-bold text-slate-700 px-2">Hal 1 / 1</span>
-                <button id="btnNextPage" onclick="nextStudentPage()" class="bg-white border border-slate-300 text-slate-600 hover:bg-slate-50 px-3 py-1 rounded-lg font-bold disabled:opacity-40 disabled:cursor-not-allowed">
-                    Berikutnya &gt;
-                </button>
-            </div>
-        </div>
-    </div>
-</section>
+                <!-- Footer Pagination -->
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+                    <div id="studentPaginationInfo">
+                        Menampilkan 0 - 0 dari 0 siswa
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <select id="rowsPerPageSelect" onchange="changeRowsPerPage(this.value)" class="bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 outline-none">
+                            <option value="10">10 / hal</option>
+                            <option value="25" selected>25 / hal</option>
+                            <option value="50">50 / hal</option>
+                            <option value="100">100 / hal</option>
+                        </select>
+                        <div class="flex items-center space-x-1">
+                            <button id="btnPrevPage" onclick="prevStudentPage()" class="bg-white border border-slate-300 text-slate-600 hover:bg-slate-50 px-3 py-1 rounded-lg font-bold disabled:opacity-40 disabled:cursor-not-allowed">
+                                &lt; Sebelumnya
+                            </button>
+                            <span id="lblCurrentPage" class="font-bold text-slate-700 px-2">Hal 1 / 1</span>
+                            <button id="btnNextPage" onclick="nextStudentPage()" class="bg-white border border-slate-300 text-slate-600 hover:bg-slate-50 px-3 py-1 rounded-lg font-bold disabled:opacity-40 disabled:cursor-not-allowed">
+                                Berikutnya &gt;
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-<!-- MODAL TAMBAH SISWA MANUAL NEW -->
-<div id="addStudentModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md border border-slate-100">
-        <h3 class="text-lg font-bold text-slate-800 mb-4">Tambah Akun Siswa Baru</h3>
-        <form id="addStudentForm" class="space-y-3">
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">NISN Siswa</label>
-                <input type="text" id="inputStudentNisn" placeholder="Contoh: 0012345678" class="w-full border p-2.5 rounded-xl text-sm" required>
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Nama Lengkap</label>
-                <input type="text" id="inputStudentName" placeholder="Nama Lengkap Siswa" class="w-full border p-2.5 rounded-xl text-sm" required>
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Rombel Kelas</label>
-                <input type="text" id="inputStudentClass" placeholder="Contoh: X-1, XI-1, XII-1" class="w-full border p-2.5 rounded-xl text-sm" required>
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">Password</label>
-                <input type="text" id="inputStudentPassword" placeholder="Kosongkan jika default = NISN" class="w-full border p-2.5 rounded-xl text-sm">
-            </div>
-            <div class="flex space-x-2 pt-2">
-                <button type="button" onclick="closeEditModal('addStudentModal')" class="w-1/2 border font-bold p-2.5 rounded-xl text-sm hover:bg-slate-50">Batal</button>
-                <button type="submit" class="w-1/2 bg-blue-600 text-white font-bold p-2.5 rounded-xl text-sm hover:bg-blue-700">Simpan Siswa</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-            <!-- TAB 4: RIWAYAT PENGERJAAN (EXAM_SUBMISSIONS) -->
+            <!-- TAB 3: RIWAYAT PENGERJAAN -->
             <section id="tab-history" class="tab-content hidden">
                 <div class="flex items-center justify-between mb-6">
                     <div>
@@ -306,7 +239,7 @@
                 </div>
             </section>
 
-            <!-- TAB 5: PENGATURAN GLOBAL TERPUSAT -->
+            <!-- TAB 4: PENGATURAN GLOBAL TERPUSAT -->
             <section id="tab-settings" class="tab-content hidden">
                 <div class="flex items-center justify-between mb-6">
                     <div>
@@ -348,6 +281,35 @@
             </section>
 
         </main>
+    </div>
+
+    <!-- MODAL TAMBAH SISWA MANUAL -->
+    <div id="addStudentModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md border border-slate-100">
+            <h3 class="text-lg font-bold text-slate-800 mb-4">Tambah Akun Siswa Baru</h3>
+            <form id="addStudentForm" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">NISN Siswa</label>
+                    <input type="text" id="inputStudentNisn" placeholder="Contoh: 0012345678" class="w-full border p-2.5 rounded-xl text-sm" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Nama Lengkap</label>
+                    <input type="text" id="inputStudentName" placeholder="Nama Lengkap Siswa" class="w-full border p-2.5 rounded-xl text-sm" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Rombel Kelas</label>
+                    <input type="text" id="inputStudentClass" placeholder="Contoh: X-1, XI-1, XII-1" class="w-full border p-2.5 rounded-xl text-sm" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Password</label>
+                    <input type="text" id="inputStudentPassword" placeholder="Kosongkan jika default = NISN" class="w-full border p-2.5 rounded-xl text-sm">
+                </div>
+                <div class="flex space-x-2 pt-2">
+                    <button type="button" onclick="closeEditModal('addStudentModal')" class="w-1/2 border font-bold p-2.5 rounded-xl text-sm hover:bg-slate-50">Batal</button>
+                    <button type="submit" class="w-1/2 bg-blue-600 text-white font-bold p-2.5 rounded-xl text-sm hover:bg-blue-700">Simpan Siswa</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- MODAL EDIT DATA SOAL -->
