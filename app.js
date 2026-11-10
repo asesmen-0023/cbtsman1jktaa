@@ -1,5 +1,25 @@
-// Pembantu instansiasi Supabase secara aman
-const getSupabase = () => window.supabaseClient || (window.supabase ? window.supabase.createClient('https://ulroqkrnwzzrgkasrqit.supabase.co', 'sb_publishable_DJm-HRJpia9X3CzOlBq61Q_Dqct-DPi') : null);
+// Pembantu instansiasi Supabase secara dinamis mengikuti server aktif
+const getSupabase = () => {
+    return typeof getActiveSupabaseClient === 'function' 
+        ? getActiveSupabaseClient() 
+        : (window.supabaseClient || (window.supabase ? window.supabase.createClient('https://ulroqkrnwzzrgkasrqit.supabase.co', 'sb_publishable_DJm-HRJpia9X3CzOlBq61Q_Dqct-DPi') : null));
+};
+
+// Handler untuk berganti server dari dropdown UI
+function switchAdminServer(serverKey) {
+    window.currentServerKey = serverKey;
+    localStorage.setItem("CBT_ADMIN_SERVER_KEY", serverKey);
+    window.supabaseClient = null; // Clear instance agar re-connect ke server baru
+    
+    // Muat ulang data dashboard sesuai server yang dipilih
+    initDashboard();
+    
+    const serverName = (typeof SUPABASE_SERVERS !== 'undefined' && SUPABASE_SERVERS[serverKey]) 
+        ? SUPABASE_SERVERS[serverKey].name 
+        : serverKey;
+        
+    showModernAlert(`Berhasil beralih ke Database Server ${serverName}`, 'Server Berkelanjutan', 'success');
+}
 
 // ELEMEN DOM LOG IN & UI
 const loginModal = document.getElementById('loginModal');
@@ -143,6 +163,12 @@ function initDashboard() {
     if (loginModal) loginModal.classList.add('hidden');
     if (dashboardApp) dashboardApp.classList.remove('hidden');
     
+    // Sinkronkan nilai dropdown server di UI jika ada
+    const selectElem = document.getElementById('selectAdminServer');
+    if (selectElem && window.currentServerKey) {
+        selectElem.value = window.currentServerKey;
+    }
+
     fetchGlobalSettings();
     fetchViolations();
     subscribeViolations();
@@ -219,7 +245,6 @@ async function fetchViolations() {
     const client = getSupabase();
     if (!client) return;
 
-    // Ambil seluruh data pelanggaran terurut dari yang paling baru
     const { data, error } = await client
         .from('violations')
         .select('*')
@@ -229,7 +254,6 @@ async function fetchViolations() {
     if (!tbody) return;
 
     if (!error && data && data.length > 0) {
-        // Kelompokkan data pelanggaran berdasarkan NISN
         const groupedViolations = {};
 
         data.forEach(v => {
@@ -240,7 +264,7 @@ async function fetchViolations() {
                     last_violation_type: v.violation_type,
                     last_time: v.created_at,
                     count: 1,
-                    ids: [v.id] // Menyimpan array ID log pelanggaran milik siswa ini
+                    ids: [v.id]
                 };
             } else {
                 groupedViolations[v.nisn].count += 1;
@@ -248,7 +272,6 @@ async function fetchViolations() {
             }
         });
 
-        // Render data yang sudah di-grouping ke dalam tabel HTML
         tbody.innerHTML = Object.values(groupedViolations).map(v => `
             <tr class="hover:bg-slate-50 transition border-b border-slate-100">
                 <td class="p-4 font-mono text-xs text-slate-500">
@@ -278,7 +301,6 @@ async function fetchViolations() {
     }
 }
 
-// Handler Hapus Seluruh Log Pelanggaran untuk 1 Siswa
 async function deleteGroupedViolations(ids, nisn) {
     showModernConfirm(
         `Apakah Anda yakin ingin MENGHAPUS SEMUA (${ids.length}) log pelanggaran untuk siswa dengan NISN: ${nisn}?`,
@@ -298,7 +320,6 @@ async function deleteGroupedViolations(ids, nisn) {
     );
 }
 
-// Handler Hapus Masal Semua Pelanggaran di Database
 async function deleteAllViolations() {
     showModernConfirm('Apakah Anda yakin ingin MENGHAPUS SEMUA log pelanggaran terdeteksi dari seluruh siswa?', 'Hapus Masal Pelanggaran', async () => {
         const client = getSupabase();
@@ -314,7 +335,6 @@ async function deleteAllViolations() {
     });
 }
 
-// Realtime Listener Supabase
 function subscribeViolations() {
     const client = getSupabase();
     if (!client) return;
@@ -323,6 +343,7 @@ function subscribeViolations() {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'violations' }, () => fetchViolations())
         .subscribe();
 }
+
 // ==========================================
 // 2. MANAJEMEN SOAL
 // ==========================================
@@ -570,30 +591,35 @@ async function handleExcelImport() {
 }
 
 // ==========================================
-// 4. RIWAYAT PENGERJAAN SISWA
+// 4. RIWAYAT PENGERJAAN SISWA (EXAM_SUBMISSIONS)
 // ==========================================
 async function fetchHistory() {
     const client = getSupabase();
     if (!client) return;
 
-    const { data } = await client.from('submissions').select('*, exams(subject_name)').order('created_at', { ascending: false });
+    // Disesuaikan dengan tabel exam_submissions pada Supabase
+    const { data, error } = await client
+        .from('exam_submissions')
+        .select('*')
+        .order('created_at', { ascending: false });
+
     const tbody = document.getElementById('historyTableBody');
     if (!tbody) return;
 
-    if (data && data.length > 0) {
+    if (!error && data && data.length > 0) {
         tbody.innerHTML = data.map(h => `
             <tr class="hover:bg-slate-50 transition border-b border-slate-100">
                 <td class="p-4 font-mono font-bold text-slate-700">${h.nisn}</td>
-                <td class="p-4 font-semibold">${h.exams?.subject_name || 'Ujian CBT'}</td>
-                <td class="p-4 font-bold text-center">${h.attempt_count} x</td>
+                <td class="p-4 font-semibold text-slate-700">${h.student_name || 'Siswa'}</td>
+                <td class="p-4 font-bold"><span class="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-md text-xs">${h.student_class}</span></td>
                 <td class="p-4">
-                    <span class="px-2.5 py-1 rounded-full text-xs font-bold ${h.is_allowed_retest ? 'bg-blue-100 text-blue-700' : 'bg-rose-100 text-rose-700'}">
-                        ${h.is_allowed_retest ? 'Diizinkan Ulang' : 'Terkunci (Selesai)'}
+                    <span class="px-2.5 py-1 rounded-full text-xs font-bold ${h.is_completed ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
+                        ${h.is_completed ? 'Terkunci (Selesai)' : 'Sedang Mengerjakan'}
                     </span>
                 </td>
                 <td class="p-4 space-x-2">
-                    <button onclick="toggleRetestPermission(${h.id}, ${!h.is_allowed_retest})" class="text-xs bg-slate-800 hover:bg-slate-900 text-white font-semibold px-3 py-1.5 rounded-lg transition">
-                        ${h.is_allowed_retest ? 'Kunci Akses' : 'Beri Izin Ulang'}
+                    <button onclick="toggleRetestPermission(${h.id}, ${!h.is_completed})" class="text-xs bg-slate-800 hover:bg-slate-900 text-white font-semibold px-3 py-1.5 rounded-lg transition">
+                        ${h.is_completed ? 'Izinkan Ujian Ulang' : 'Kunci Ujian'}
                     </button>
                     <button onclick="deleteSubmission(${h.id})" class="text-xs bg-red-50 text-red-600 font-semibold px-3 py-1.5 rounded-lg hover:bg-red-100 transition">
                         Hapus
@@ -610,7 +636,7 @@ async function deleteSubmission(id) {
     showModernConfirm('Hapus riwayat pengerjaan siswa ini? Siswa akan dapat mengerjakan ujian dari awal.', 'Hapus Riwayat', async () => {
         const client = getSupabase();
         if (!client) return;
-        await client.from('submissions').delete().eq('id', id);
+        await client.from('exam_submissions').delete().eq('id', id);
         fetchHistory();
     });
 }
@@ -620,7 +646,7 @@ async function deleteAllSubmissions() {
         const client = getSupabase();
         if (!client) return;
 
-        const { error } = await client.from('submissions').delete().neq('id', 0);
+        const { error } = await client.from('exam_submissions').delete().neq('id', 0);
         if (!error) {
             showModernAlert('Semua riwayat pengerjaan berhasil dibersihkan!', 'Berhasil', 'success');
             fetchHistory();
@@ -630,10 +656,10 @@ async function deleteAllSubmissions() {
     });
 }
 
-async function toggleRetestPermission(id, newAllowed) {
+async function toggleRetestPermission(id, newCompletedState) {
     const client = getSupabase();
     if (!client) return;
-    await client.from('submissions').update({ is_allowed_retest: newAllowed }).eq('id', id);
+    await client.from('exam_submissions').update({ is_completed: newCompletedState }).eq('id', id);
     fetchHistory();
 }
 
