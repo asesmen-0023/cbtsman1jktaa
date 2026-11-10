@@ -18,7 +18,7 @@ function switchAdminServer(serverKey) {
         ? SUPABASE_SERVERS[serverKey].name 
         : serverKey;
         
-    showModernAlert(`Berhasil beralih ke Database Server ${serverName}`, 'Pindah Kelas', 'success');
+    showModernAlert(`Berhasil beralih ke Database Server ${serverName}`, 'Server Berkelanjutan', 'success');
 }
 
 // ELEMEN DOM LOG IN & UI
@@ -28,7 +28,7 @@ const adminLoginForm = document.getElementById('adminLoginForm');
 const logoutBtn = document.getElementById('logoutBtn');
 
 // ==========================================
-// UTILITY DIALOG MODERN & KUSTOM (MENGGANTIKAN ALERT/CONFIRM)
+// UTILITY DIALOG MODERN & KUSTOM
 // ==========================================
 function showModernAlert(message, title = 'Informasi', type = 'info') {
     const existing = document.getElementById('modernAlertModal');
@@ -168,16 +168,9 @@ async function initDashboard() {
         selectElem.value = window.currentServerKey;
     }
 
-    // Ambil data soal terlebih dahulu agar mapel ter-cache
+    // Muat exams terlebih dahulu agar mapping nama mapel di history tersedia
     await fetchExams();
-    
     fetchGlobalSettings();
-    fetchStudents();
-    fetchHistory();
-}
-
-    fetchGlobalSettings();
-    fetchExams();
     fetchStudents();
     fetchHistory();
 }
@@ -257,7 +250,7 @@ async function fetchExams() {
     if (!tbody) return;
 
     if (data && data.length > 0) {
-        allExamsData = data; // Simpan data soal ke memori global
+        allExamsData = data;
         tbody.innerHTML = data.map(e => `
             <tr class="hover:bg-slate-50 transition border-b border-slate-100">
                 <td class="p-4 font-bold text-slate-700">${e.student_class}</td>
@@ -281,80 +274,6 @@ async function fetchExams() {
         allExamsData = [];
         tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400">Belum ada link soal ditambahkan</td></tr>`;
     }
-}
-
-function renderHistoryTable() {
-    const tbody = document.getElementById('historyTableBody');
-    if (!tbody) return;
-
-    const total = filteredHistoryData.length;
-    const totalPages = Math.ceil(total / historyRowsPerPage) || 1;
-
-    if (currentHistoryPage < 1) currentHistoryPage = 1;
-    if (currentHistoryPage > totalPages) currentHistoryPage = totalPages;
-
-    const startIdx = (currentHistoryPage - 1) * historyRowsPerPage;
-    const endIdx = Math.min(startIdx + historyRowsPerPage, total);
-
-    const pageData = filteredHistoryData.slice(startIdx, endIdx);
-
-    if (pageData.length > 0) {
-        tbody.innerHTML = pageData.map(h => {
-            // Ambil ID / String Mapel dari record submission
-            const rawSubject = String(h.subject_name || h.subject_id || '').trim();
-            
-            // Cari pencocokan ke daftar soal (baik berdasarkan ID maupun Nama Mapel)
-            const matchExam = (allExamsData || []).find(e => 
-                String(e.id).trim() === rawSubject || 
-                (e.subject_name && e.subject_name.trim().toLowerCase() === rawSubject.toLowerCase())
-            );
-
-            // Jika ketemu match, gunakan subject_name dari tabel exams
-            const displaySubjectName = matchExam ? matchExam.subject_name : (rawSubject || 'Ujian CBT');
-
-            return `
-            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-                <td class="p-3 font-mono font-bold text-slate-800">${h.nisn}</td>
-                <td class="p-3 font-bold text-slate-800 uppercase">${h.student_name || 'Siswa'}</td>
-                <td class="p-3 font-semibold text-slate-600">${h.student_class || '-'}</td>
-                <td class="p-3 font-bold text-blue-700">${displaySubjectName}</td>
-                <td class="p-3 text-slate-500 font-mono text-[11px]">
-                    ${h.created_at ? new Date(h.created_at).toLocaleString('id-ID') : '-'}
-                </td>
-                <td class="p-3">
-                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold ${h.is_completed ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
-                        ${h.is_completed ? 'Terkunci (Selesai)' : 'Sedang Mengerjakan'}
-                    </span>
-                </td>
-                <td class="p-3 text-center space-x-2">
-                    <button onclick="toggleRetestPermission(${h.id}, ${!h.is_completed})" class="text-xs bg-slate-800 hover:bg-slate-900 text-white font-semibold px-3 py-1.5 rounded-lg transition">
-                        ${h.is_completed ? 'Izinkan Ujian Ulang' : 'Kunci Ujian'}
-                    </button>
-                    <button onclick="deleteSubmission(${h.id})" class="text-xs bg-red-50 text-red-600 font-semibold px-3 py-1.5 rounded-lg hover:bg-red-100 transition">
-                        Hapus
-                    </button>
-                </td>
-            </tr>`;
-        }).join('');
-    } else {
-        tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-400">Tidak ada riwayat pengerjaan ditemukan</td></tr>`;
-    }
-
-    const info = document.getElementById('historyPaginationInfo');
-    if (info) {
-        info.innerText = total > 0 
-            ? `Menampilkan ${startIdx + 1}-${endIdx} dari ${total} data` 
-            : `Menampilkan 0 dari 0 data`;
-    }
-
-    const lblPage = document.getElementById('lblCurrentHistoryPage');
-    if (lblPage) lblPage.innerText = `Hal ${currentHistoryPage} / ${totalPages}`;
-
-    const btnPrev = document.getElementById('btnPrevHistoryPage');
-    const btnNext = document.getElementById('btnNextHistoryPage');
-
-    if (btnPrev) btnPrev.disabled = (currentHistoryPage <= 1);
-    if (btnNext) btnNext.disabled = (currentHistoryPage >= totalPages);
 }
 
 async function toggleExamStatus(id, newStatus) {
@@ -426,7 +345,7 @@ if (addExamForm) {
 }
 
 // ==========================================
-// 3. DATABASE SISWA (PAGINASI & FILTER & SORT)
+// 3. DATABASE SISWA
 // ==========================================
 let allStudentsData = [];
 let filteredStudentsData = [];
@@ -719,7 +638,7 @@ async function handleExcelImport() {
 }
 
 // ==========================================
-// 4. RIWAYAT PENGERJAAN SISWA (PAGINASI, FILTER & MULTI-MAPEL)
+// 4. RIWAYAT PENGERJAAN SISWA (MULTI-MAPEL)
 // ==========================================
 let allHistoryData = [];
 let filteredHistoryData = [];
@@ -759,7 +678,15 @@ function populateHistoryFilterOptions() {
 
     if (subjectSelect) {
         const currentSubject = subjectSelect.value;
-        const subjects = [...new Set(allHistoryData.map(h => h.subject_name || h.subject_id).filter(Boolean))].sort();
+        const subjects = [...new Set(allHistoryData.map(h => {
+            const rawSubject = String(h.subject_name || h.subject_id || '').trim();
+            const matchExam = (allExamsData || []).find(e => 
+                String(e.id).trim() === rawSubject || 
+                (e.subject_name && e.subject_name.trim().toLowerCase() === rawSubject.toLowerCase())
+            );
+            return matchExam ? matchExam.subject_name : rawSubject;
+        }).filter(Boolean))].sort();
+
         subjectSelect.innerHTML = `<option value="">Semua Mata Pelajaran</option>` + 
             subjects.map(s => `<option value="${s}">${s}</option>`).join('');
         subjectSelect.value = currentSubject;
@@ -778,7 +705,15 @@ function filterHistory() {
             (h.student_name && h.student_name.toLowerCase().includes(searchVal));
 
         const matchesClass = !classVal || h.student_class === classVal;
-        const matchesSubject = !subjectVal || (h.subject_name || h.subject_id) === subjectVal;
+
+        const rawSubject = String(h.subject_name || h.subject_id || '').trim();
+        const matchExam = (allExamsData || []).find(e => 
+            String(e.id).trim() === rawSubject || 
+            (e.subject_name && e.subject_name.trim().toLowerCase() === rawSubject.toLowerCase())
+        );
+        const resolvedSubject = matchExam ? matchExam.subject_name : rawSubject;
+
+        const matchesSubject = !subjectVal || resolvedSubject === subjectVal;
 
         return matchesSearch && matchesClass && matchesSubject;
     });
@@ -816,12 +751,20 @@ function renderHistoryTable() {
     const pageData = filteredHistoryData.slice(startIdx, endIdx);
 
     if (pageData.length > 0) {
-        tbody.innerHTML = pageData.map(h => `
+        tbody.innerHTML = pageData.map(h => {
+            const rawSubject = String(h.subject_name || h.subject_id || '').trim();
+            const matchExam = (allExamsData || []).find(e => 
+                String(e.id).trim() === rawSubject || 
+                (e.subject_name && e.subject_name.trim().toLowerCase() === rawSubject.toLowerCase())
+            );
+            const displaySubjectName = matchExam ? matchExam.subject_name : (rawSubject || 'Ujian CBT');
+
+            return `
             <tr class="hover:bg-slate-50 transition border-b border-slate-100">
                 <td class="p-3 font-mono font-bold text-slate-800">${h.nisn}</td>
                 <td class="p-3 font-bold text-slate-800 uppercase">${h.student_name || 'Siswa'}</td>
                 <td class="p-3 font-semibold text-slate-600">${h.student_class || '-'}</td>
-                <td class="p-3 font-bold text-blue-700">${h.subject_name || h.subject_id || 'Ujian CBT'}</td>
+                <td class="p-3 font-bold text-blue-700">${displaySubjectName}</td>
                 <td class="p-3 text-slate-500 font-mono text-[11px]">
                     ${h.created_at ? new Date(h.created_at).toLocaleString('id-ID') : '-'}
                 </td>
@@ -838,8 +781,8 @@ function renderHistoryTable() {
                         Hapus
                     </button>
                 </td>
-            </tr>
-        `).join('');
+            </tr>`;
+        }).join('');
     } else {
         tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-400">Tidak ada riwayat pengerjaan ditemukan</td></tr>`;
     }
