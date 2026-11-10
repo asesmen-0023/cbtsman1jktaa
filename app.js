@@ -294,13 +294,71 @@ async function deleteExam(id) {
 
 function openEditExamModal(exam) {
     document.getElementById('editExamId').value = exam.id;
-    document.getElementById('editClass').value = exam.student_class;
-    document.getElementById('editSubject').value = exam.subject_name;
-    document.getElementById('editUrl').value = exam.form_url;
+    
+    // Penyesuaian nama ID elemen HTML sesuai form modal di UI Admin
+    const inputClass = document.getElementById('editClass') || document.getElementById('editTargetClass');
+    const inputSubject = document.getElementById('editSubject') || document.getElementById('editSubjectName');
+    const inputUrl = document.getElementById('editUrl') || document.getElementById('editFormUrl');
+    
+    if (inputClass) inputClass.value = exam.student_class || '';
+    if (inputSubject) inputSubject.value = exam.subject_name || '';
+    if (inputUrl) inputUrl.value = exam.form_url || '';
+    
     document.getElementById('editStartTime').value = exam.start_time ? exam.start_time.slice(0, 16) : '';
     document.getElementById('editEndTime').value = exam.end_time ? exam.end_time.slice(0, 16) : '';
-    document.getElementById('editExamModal').classList.remove('hidden');
+    
+    document.getElementById('editExamModal')?.classList.remove('hidden');
 }
+
+document.getElementById('editExamForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const client = getSupabase();
+    if (!client) return;
+
+    // 1. Wajib parse ID ke Integer agar cocok dengan tipe int8 kolom database Supabase
+    const rawId = document.getElementById('editExamId').value;
+    const id = parseInt(rawId, 10);
+
+    // 2. Ambil nilai input secara dinamis (mengakomodasi variasi ID HTML)
+    const student_class = (document.getElementById('editClass') || document.getElementById('editTargetClass'))?.value.trim();
+    const subject_name = (document.getElementById('editSubject') || document.getElementById('editSubjectName'))?.value.trim();
+    const form_url = (document.getElementById('editUrl') || document.getElementById('editFormUrl'))?.value.trim();
+    
+    const startTimeVal = document.getElementById('editStartTime').value;
+    const endTimeVal = document.getElementById('editEndTime').value;
+
+    const start_time = startTimeVal ? new Date(startTimeVal).toISOString() : null;
+    const end_time = endTimeVal ? new Date(endTimeVal).toISOString() : null;
+
+    if (!id || isNaN(id)) {
+        showModernAlert('ID Ujian tidak valid!', 'Gagal Update', 'error');
+        return;
+    }
+
+    // 3. Eksekusi Update ke Supabase
+    const { data, error } = await client
+        .from('exams')
+        .update({ 
+            student_class, 
+            subject_name, 
+            form_url, 
+            start_time, 
+            end_time 
+        })
+        .eq('id', id)
+        .select();
+
+    if (!error && data && data.length > 0) {
+        closeEditModal('editExamModal');
+        await fetchExams();
+        showModernAlert('Data soal berhasil diperbarui!', 'Berhasil', 'success');
+    } else if (error) {
+        showModernAlert('Gagal mengupdate soal: ' + error.message, 'Gagal', 'error');
+    } else {
+        // Fallback jika 0 baris ter-update (misal mismatch RLS)
+        showModernAlert('Data tidak dapat diperbarui. Pastikan RLS UPDATE pada tabel exams telah diaktifkan.', 'Peringatan', 'error');
+    }
+});
 
 document.getElementById('editExamForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
