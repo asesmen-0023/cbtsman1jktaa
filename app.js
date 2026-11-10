@@ -380,6 +380,7 @@ function populateClassFilterOptions() {
 function filterStudents() {
     const searchVal = document.getElementById('searchStudentInput')?.value.toLowerCase().trim() || '';
     const classVal = document.getElementById('filterClassSelect')?.value || '';
+    const sortVal = document.getElementById('sortStudentSelect')?.value || 'nama_asc';
 
     filteredStudentsData = allStudentsData.filter(s => {
         const matchesSearch = !searchVal || 
@@ -391,8 +392,20 @@ function filterStudents() {
         return matchesSearch && matchesClass;
     });
 
+    filteredStudentsData.sort((a, b) => {
+        if (sortVal === 'nama_asc') {
+            return (a.nama || '').localeCompare(b.nama || '');
+        } else if (sortVal === 'nama_desc') {
+            return (b.nama || '').localeCompare(a.nama || '');
+        } else if (sortVal === 'nisn_asc') {
+            return (a.nisn || '').localeCompare(b.nisn || '', undefined, { numeric: true });
+        } else if (sortVal === 'class_asc') {
+            return (a.student_class || '').localeCompare(b.student_class || '');
+        }
+        return 0;
+    });
+
     currentStudentPage = 1;
-    updateSesiCounters();
     renderStudentTable();
 }
 
@@ -430,33 +443,25 @@ function renderStudentTable() {
     const pageData = filteredStudentsData.slice(startIdx, endIdx);
 
     if (pageData.length > 0) {
-        tbody.innerHTML = pageData.map((s, index) => {
-            const sesiName = (startIdx + index) % 2 === 0 ? "Sesi 1" : "Sesi 2";
-            return `
-            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-                <td class="p-3 text-center">
-                    <input type="checkbox" value="${s.id}" class="student-checkbox rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-                </td>
-                <td class="p-3 font-mono font-bold text-slate-800">${s.nisn}</td>
-                <td class="p-3 font-bold text-slate-800 uppercase">${s.nama}</td>
-                <td class="p-3 font-semibold text-slate-600">${s.student_class}</td>
-                <td class="p-3 text-slate-500">Pendidikan Pancasila</td>
-                <td class="p-3 text-slate-500">Ujian CBT Utama</td>
-                <td class="p-3">
-                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold ${sesiName === 'Sesi 1' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}">
-                        ${sesiName}
-                    </span>
-                </td>
-                <td class="p-3 text-center space-x-1">
-                    <button onclick='openEditStudentModal(${JSON.stringify(s)})' class="p-1.5 text-slate-500 hover:text-amber-600 rounded-lg hover:bg-amber-50 transition" title="Edit Data">
-                        ✏️
-                    </button>
-                    <button onclick="deleteStudent(${s.id})" class="p-1.5 text-slate-500 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition" title="Hapus Siswa">
-                        🗑️
-                    </button>
-                </td>
-            </tr>`;
-        }).join('');
+        tbody.innerHTML = pageData.map(s => `
+    <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+        <td class="p-3 text-center">
+            <input type="checkbox" value="${s.id}" class="student-checkbox rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+        </td>
+        <td class="p-3 font-mono font-bold text-slate-800">${s.nisn}</td>
+        <td class="p-3 font-bold text-slate-800 uppercase">${s.nama}</td>
+        <td class="p-3 font-semibold text-slate-600">${s.student_class}</td>
+        <td class="p-3 font-mono text-xs text-slate-500">${s.password || '<i class="text-slate-300">Default (NISN)</i>'}</td>
+        <td class="p-3 text-center space-x-1">
+            <button onclick='openEditStudentModal(${JSON.stringify(s)})' class="p-1.5 text-slate-500 hover:text-amber-600 rounded-lg hover:bg-amber-50 transition" title="Edit Data">
+                ✏️
+            </button>
+            <button onclick="deleteStudent(${s.id})" class="p-1.5 text-slate-500 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition" title="Hapus Siswa">
+                🗑️
+            </button>
+        </td>
+    </tr>
+`).join('');
     } else {
         tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-slate-400">Tidak ada data siswa ditemukan</td></tr>`;
     }
