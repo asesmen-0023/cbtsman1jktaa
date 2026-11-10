@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CBT - SMAN 1 Jakarta</title>
+    <title>CBT - SMAN 1 Jakarta Panel Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -34,7 +34,7 @@
     <!-- MAIN DASHBOARD -->
     <div id="dashboardApp" class="hidden min-h-screen flex flex-col md:flex-row">
         <!-- Sidebar -->
-        <aside class="w-full md:w-64 bg-slate-900 text-white p-6 flex flex-col justify-between">
+        <aside class="w-full md:w-64 bg-slate-900 text-white p-6 flex flex-col justify-between shrink-0">
             <div>
                 <div class="flex items-center justify-between mb-6">
                     <div>
@@ -69,43 +69,95 @@
         <!-- Main Content -->
         <main class="flex-1 p-6 md:p-10 overflow-y-auto">
 
-            <!-- TAB 1: MANAJEMEN SOAL -->
-            <section id="tab-exams" class="tab-content">
-                <h2 class="text-2xl font-bold mb-6">Manajemen Soal Ujian</h2>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8">
-                    <h3 class="font-bold text-slate-700 mb-4">Buat / Tambah Link Soal Ujian Baru</h3>
-                    <form id="addExamForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <input type="text" id="inputClass" placeholder="Target Kelas (misal: X-1, XI-1, XII-1)" class="border p-3 rounded-xl text-sm" required>
-                        <input type="text" id="inputSubject" placeholder="Mata Pelajaran" class="border p-3 rounded-xl text-sm" required>
-                        <input type="url" id="inputUrl" placeholder="Link Google Form Soal Ujian" class="border p-3 rounded-xl text-sm" required>
-                        <div>
-                            <label class="block text-xs text-slate-500 mb-1">Mulai Tayang (Opsional)</label>
-                            <input type="datetime-local" id="inputStartTime" class="w-full border p-2.5 rounded-xl text-sm">
+            <!-- TAB 1: MANAJEMEN SOAL UJIAN -->
+            <section id="tab-exams" class="tab-content space-y-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
+                    <div>
+                        <h2 class="text-2xl font-black text-slate-800">Manajemen Soal Ujian</h2>
+                        <p class="text-xs text-slate-500">Kelola link Google Form evaluasi pembelajaran dan waktu tayang per server angkatan.</p>
+                    </div>
+                </div>
+
+                <!-- FORM TAMBAH SOAL UJIAN -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <h3 class="font-bold text-slate-700 mb-4 flex items-center gap-2">
+                        <span>➕</span> Buat / Tambah Link Soal Ujian Baru
+                    </h3>
+                    <form id="addExamForm" class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Target Kelas / Rombel</label>
+                                <select id="inputClass" class="w-full border p-2.5 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-blue-500 outline-none">
+                                    <option value="SEMUA">🌐 Semua Kelas di Angkatan Ini</option>
+                                    <!-- Dynamic Options Loaded via JS -->
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Mata Pelajaran</label>
+                                <input type="text" id="inputSubject" placeholder="Mata Pelajaran (misal: Matematika Wajib)" class="w-full border p-2.5 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none" required>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Link Google Form Soal Ujian</label>
+                                <input type="url" id="inputUrl" placeholder="https://forms.gle/..." class="w-full border p-2.5 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none" required>
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-xs text-slate-500 mb-1">Selesai Tayang (Opsional)</label>
-                            <input type="datetime-local" id="inputEndTime" class="w-full border p-2.5 rounded-xl text-sm">
-                        </div>
-                        <div class="flex items-end">
-                            <button type="submit" class="w-full bg-blue-600 text-white font-bold p-3 rounded-xl hover:bg-blue-700 transition">Simpan Soal</button>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Mulai Tayang (Opsional)</label>
+                                <input type="datetime-local" id="inputStartTime" class="w-full border p-2.5 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Selesai Tayang (Opsional)</label>
+                                <input type="datetime-local" id="inputEndTime" class="w-full border p-2.5 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <button type="submit" class="w-full bg-blue-600 text-white font-bold p-2.5 rounded-xl hover:bg-blue-700 transition text-xs shadow-md shadow-blue-500/20 active:scale-95">
+                                    Simpan Soal Ujian
+                                </button>
+                            </div>
                         </div>
                     </form>
                 </div>
 
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <table class="w-full text-left border-collapse text-sm">
-                        <thead class="bg-slate-50 border-b border-slate-200 text-slate-500">
+                <!-- TOOLBAR FILTER SOAL (DESAIN SERAGAM DATABASE SISWA) -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div class="relative">
+                        <input type="text" id="searchExamInput" onkeyup="filterExams()" placeholder="Cari nama mata pelajaran..." class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <select id="filterExamClassSelect" onchange="filterExams()" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="">Semua Target Rombel</option>
+                            <option value="SEMUA">🌐 Semua Kelas</option>
+                        </select>
+                    </div>
+                    <div>
+                        <select id="filterExamStatusSelect" onchange="filterExams()" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="">Semua Status Tayang</option>
+                            <option value="active">🟢 TAMPIL (AKTIF)</option>
+                            <option value="inactive">🔴 DISEMBUNYIKAN</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- TABEL DATA SOAL -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider text-[11px]">
                             <tr>
-                                <th class="p-4 font-bold">Target Rombel</th>
-                                <th class="p-4 font-bold">Mata Pelajaran</th>
-                                <th class="p-4 font-bold">Status Tayang</th>
-                                <th class="p-4 font-bold">Waktu Tayang</th>
-                                <th class="p-4 font-bold">Aksi Kontrol</th>
+                                <th class="p-3.5 font-bold">Target Rombel</th>
+                                <th class="p-3.5 font-bold">Mata Pelajaran</th>
+                                <th class="p-3.5 font-bold">Status Tayang</th>
+                                <th class="p-3.5 font-bold">Waktu Tayang</th>
+                                <th class="p-3.5 font-bold text-center">Aksi Kontrol</th>
                             </tr>
                         </thead>
-                        <tbody id="examTableBody"></tbody>
+                        <tbody id="examTableBody" class="divide-y divide-slate-100 font-medium text-slate-700">
+                            <tr><td colspan="5" class="p-6 text-center text-slate-400">Memuat data soal...</td></tr>
+                        </tbody>
                     </table>
                 </div>
+                <p id="examCountInfo" class="text-[11px] text-slate-400 font-medium">Menampilkan 0 soal ujian</p>
             </section>
 
             <!-- TAB 2: DATABASE SISWA -->
@@ -117,7 +169,7 @@
                     </div>
                     <div class="flex items-center space-x-2">
                         <button onclick="downloadExcelTemplate()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-3.5 py-2 rounded-lg transition flex items-center gap-1.5">
-                            <span>📊</span> Edit / Import Excel
+                            <span>📊</span> Format Import Excel
                         </button>
                         <button onclick="openAddStudentModal()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition flex items-center gap-1">
                             <span>+</span> Tambah
@@ -202,88 +254,88 @@
             </section>
 
             <!-- TAB 3: RIWAYAT PENGERJAAN -->
-<section id="tab-history" class="tab-content hidden">
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-        <div>
-            <h2 class="text-2xl font-black text-slate-800">Riwayat & Status Ujian Siswa</h2>
-            <p class="text-xs text-slate-500">Monitoring pengiriman jawaban per mata pelajaran (Tabel exam_submissions)</p>
-        </div>
-        <div>
-            <button onclick="deleteAllSubmissions()" class="bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 text-xs font-bold px-3.5 py-2 rounded-xl transition">
-                🗑️ Hapus Semua Riwayat Selesai
-            </button>
-        </div>
-    </div>
+            <section id="tab-history" class="tab-content hidden">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                    <div>
+                        <h2 class="text-2xl font-black text-slate-800">Riwayat & Status Ujian Siswa</h2>
+                        <p class="text-xs text-slate-500">Monitoring pengiriman jawaban per mata pelajaran (Tabel exam_submissions)</p>
+                    </div>
+                    <div>
+                        <button onclick="deleteAllSubmissions()" class="bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 text-xs font-bold px-3.5 py-2 rounded-xl transition">
+                            🗑️ Hapus Semua Riwayat Selesai
+                        </button>
+                    </div>
+                </div>
 
-    <!-- Filter & Sort Toolbar -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
-        <div class="relative">
-            <input type="text" id="searchHistoryInput" onkeyup="filterHistory()" placeholder="Cari NISN / nama..." class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
-        </div>
-        <div>
-            <select id="filterHistoryClassSelect" onchange="filterHistory()" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-blue-500 outline-none">
-                <option value="">Semua Kelas / Rombel</option>
-            </select>
-        </div>
-        <div>
-            <select id="filterHistorySubjectSelect" onchange="filterHistory()" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-blue-500 outline-none">
-                <option value="">Semua Mata Pelajaran</option>
-            </select>
-        </div>
-        <div>
-            <select id="sortHistorySelect" onchange="filterHistory()" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none">
-                <option value="time_desc">Terbaru Dikirim</option>
-                <option value="nama_asc">Nama (A - Z)</option>
-                <option value="nisn_asc">NISN (Kecil - Besar)</option>
-                <option value="class_asc">Kelas / Rombel</option>
-            </select>
-        </div>
-    </div>
+                <!-- Filter & Sort Toolbar -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+                    <div class="relative">
+                        <input type="text" id="searchHistoryInput" onkeyup="filterHistory()" placeholder="Cari NISN / nama..." class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <select id="filterHistoryClassSelect" onchange="filterHistory()" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="">Semua Kelas / Rombel</option>
+                        </select>
+                    </div>
+                    <div>
+                        <select id="filterHistorySubjectSelect" onchange="filterHistory()" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="">Semua Mata Pelajaran</option>
+                        </select>
+                    </div>
+                    <div>
+                        <select id="sortHistorySelect" onchange="filterHistory()" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="time_desc">Terbaru Dikirim</option>
+                            <option value="nama_asc">Nama (A - Z)</option>
+                            <option value="nisn_asc">NISN (Kecil - Besar)</option>
+                            <option value="class_asc">Kelas / Rombel</option>
+                        </select>
+                    </div>
+                </div>
 
-    <!-- Data Table Riwayat -->
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-x-auto mb-4">
-        <table class="w-full text-left border-collapse text-xs">
-            <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider text-[11px]">
-                <tr>
-                    <th class="p-3 font-bold">NISN</th>
-                    <th class="p-3 font-bold">NAMA SISWA</th>
-                    <th class="p-3 font-bold">KELAS</th>
-                    <th class="p-3 font-bold">MATA PELAJARAN</th>
-                    <th class="p-3 font-bold">WAKTU KIRIM</th>
-                    <th class="p-3 font-bold">STATUS</th>
-                    <th class="p-3 font-bold text-center">AKSI RESET</th>
-                </tr>
-            </thead>
-            <tbody id="historyTableBody" class="divide-y divide-slate-100 font-medium text-slate-700">
-                <tr><td colspan="7" class="p-6 text-center text-slate-400">Memuat riwayat pengerjaan...</td></tr>
-            </tbody>
-        </table>
-    </div>
+                <!-- Data Table Riwayat -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-x-auto mb-4">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider text-[11px]">
+                            <tr>
+                                <th class="p-3 font-bold">NISN</th>
+                                <th class="p-3 font-bold">NAMA SISWA</th>
+                                <th class="p-3 font-bold">KELAS</th>
+                                <th class="p-3 font-bold">MATA PELAJARAN</th>
+                                <th class="p-3 font-bold">WAKTU KIRIM</th>
+                                <th class="p-3 font-bold">STATUS</th>
+                                <th class="p-3 font-bold text-center">AKSI RESET</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody" class="divide-y divide-slate-100 font-medium text-slate-700">
+                            <tr><td colspan="7" class="p-6 text-center text-slate-400">Memuat riwayat pengerjaan...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
 
-    <!-- Footer Pagination -->
-    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-        <div id="historyPaginationInfo">
-            Menampilkan 0 - 0 dari 0 data
-        </div>
-        <div class="flex items-center space-x-3">
-            <select id="rowsPerPageHistorySelect" onchange="changeHistoryRowsPerPage(this.value)" class="bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 outline-none">
-                <option value="10">10 / hal</option>
-                <option value="25" selected>25 / hal</option>
-                <option value="50">50 / hal</option>
-                <option value="100">100 / hal</option>
-            </select>
-            <div class="flex items-center space-x-1">
-                <button id="btnPrevHistoryPage" onclick="prevHistoryPage()" class="bg-white border border-slate-300 text-slate-600 hover:bg-slate-50 px-3 py-1 rounded-lg font-bold disabled:opacity-40 disabled:cursor-not-allowed">
-                    &lt; Sebelumnya
-                </button>
-                <span id="lblCurrentHistoryPage" class="font-bold text-slate-700 px-2">Hal 1 / 1</span>
-                <button id="btnNextHistoryPage" onclick="nextHistoryPage()" class="bg-white border border-slate-300 text-slate-600 hover:bg-slate-50 px-3 py-1 rounded-lg font-bold disabled:opacity-40 disabled:cursor-not-allowed">
-                    Berikutnya &gt;
-                </button>
-            </div>
-        </div>
-    </div>
-</section>
+                <!-- Footer Pagination -->
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+                    <div id="historyPaginationInfo">
+                        Menampilkan 0 - 0 dari 0 data
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <select id="rowsPerPageHistorySelect" onchange="changeHistoryRowsPerPage(this.value)" class="bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 outline-none">
+                            <option value="10">10 / hal</option>
+                            <option value="25" selected>25 / hal</option>
+                            <option value="50">50 / hal</option>
+                            <option value="100">100 / hal</option>
+                        </select>
+                        <div class="flex items-center space-x-1">
+                            <button id="btnPrevHistoryPage" onclick="prevHistoryPage()" class="bg-white border border-slate-300 text-slate-600 hover:bg-slate-50 px-3 py-1 rounded-lg font-bold disabled:opacity-40 disabled:cursor-not-allowed">
+                                &lt; Sebelumnya
+                            </button>
+                            <span id="lblCurrentHistoryPage" class="font-bold text-slate-700 px-2">Hal 1 / 1</span>
+                            <button id="btnNextHistoryPage" onclick="nextHistoryPage()" class="bg-white border border-slate-300 text-slate-600 hover:bg-slate-50 px-3 py-1 rounded-lg font-bold disabled:opacity-40 disabled:cursor-not-allowed">
+                                Berikutnya &gt;
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
             <!-- TAB 4: PENGATURAN GLOBAL TERPUSAT -->
             <section id="tab-settings" class="tab-content hidden">
@@ -366,7 +418,10 @@
                 <input type="hidden" id="editExamId">
                 <div>
                     <label class="block text-xs font-bold text-slate-600 mb-1">Target Kelas</label>
-                    <input type="text" id="editClass" class="w-full border p-2.5 rounded-xl text-sm" required>
+                    <select id="editClass" class="w-full border p-2.5 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="SEMUA">🌐 Semua Kelas di Angkatan Ini</option>
+                        <!-- Dynamic Options Loaded via JS -->
+                    </select>
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-600 mb-1">Mata Pelajaran</label>
