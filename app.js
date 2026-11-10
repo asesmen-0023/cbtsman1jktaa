@@ -555,11 +555,13 @@ document.getElementById('editStudentForm')?.addEventListener('submit', async (e)
     if (!client) return;
 
     const id = document.getElementById('editStudentId').value;
+    const nisn = document.getElementById('editStudentNisn').value.trim(); // Tambahkan baris ini
     const nama = document.getElementById('editStudentName').value.trim();
     const student_class = document.getElementById('editStudentClass').value.trim();
     const password = document.getElementById('editStudentPassword').value.trim() || null;
 
-    const { error } = await client.from('students').update({ nama, student_class, password }).eq('id', id);
+    // Tambahkan nisn ke dalam object update
+    const { error } = await client.from('students').update({ nisn, nama, student_class, password }).eq('id', id);
     if (!error) {
         closeEditModal('editStudentModal');
         fetchStudents();
