@@ -237,49 +237,119 @@ async function saveGlobalSettings() {
 }
 
 // ==========================================
-// 2. MANAJEMEN SOAL
+// 2. MANAJEMEN SOAL UJIAN (PENCARIAN, FILTER & AUTOMATION DROPDOWN)
 // ==========================================
 let allExamsData = [];
+let filteredExamsData = [];
 
 async function fetchExams() {
     const client = getSupabase();
     if (!client) return;
 
-    const { data } = await client.from('exams').select('*').order('created_at', { ascending: false });
+    const { data, error } = await client.from('exams').select('*').order('created_at', { ascending: false });
+
+    if (!error && data) {
+        allExamsData = data;
+        populateClassDropdowns();
+        populateExamFilterOptions();
+        filterExams();
+    } else {
+        allExamsData = [];
+        renderExamTable();
+    }
+}
+
+// POPULATE DROPDOWN KELAS OTOMATIS SESUAI ANGKATAN ACTIVE SERVER
+function populateClassDropdowns() {
+    const serverKey = window.currentServerKey || (typeof getActiveServerKey === 'function' ? getActiveServerKey() : 'XI');
+    const selectAdd = document.getElementById('inputClass');
+    const selectEdit = document.getElementById('editClass');
+
+    let optionsHtml = `<option value="SEMUA">🌐 Semua Kelas di Angkatan Ini</option><optgroup label="Pilih Rombel Spesifik">`;
+    for (let i = 1; i <= 10; i++) {
+        optionsHtml += `<option value="${serverKey}-${i}">Kelas ${serverKey}-${i}</option>`;
+    }
+    optionsHtml += `</optgroup>`;
+
+    if (selectAdd) selectAdd.innerHTML = optionsHtml;
+    if (selectEdit) selectEdit.innerHTML = optionsHtml;
+}
+
+// POPULATE OPTION FILTER KELAS DI TOOLBAR
+function populateExamFilterOptions() {
+    const select = document.getElementById('filterExamClassSelect');
+    if (!select) return;
+
+    const currentVal = select.value;
+    const classes = [...new Set(allExamsData.map(e => e.student_class).filter(Boolean))].sort();
+
+    select.innerHTML = `<option value="">Semua Target Rombel</option>` + 
+        classes.map(c => `<option value="${c}">${c === 'SEMUA' ? '🌐 Semua Kelas' : c}</option>`).join('');
+
+    select.value = currentVal;
+}
+
+// FUNGSI FILTERING SOAL (TERMASUK SEARCH DAN STATUS TAYANG)
+function filterExams() {
+    const searchVal = document.getElementById('searchExamInput')?.value.toLowerCase().trim() || '';
+    const classVal = document.getElementById('filterExamClassSelect')?.value || '';
+    const statusVal = document.getElementById('filterExamStatusSelect')?.value || '';
+
+    filteredExamsData = allExamsData.filter(e => {
+        const matchesSearch = !searchVal || (e.subject_name && e.subject_name.toLowerCase().includes(searchVal));
+        const matchesClass = !classVal || e.student_class === classVal;
+        
+        let matchesStatus = true;
+        if (statusVal === 'active') matchesStatus = (e.is_active === true);
+        if (statusVal === 'inactive') matchesStatus = (e.is_active === false);
+
+        return matchesSearch && matchesClass && matchesStatus;
+    });
+
+    renderExamTable();
+}
+
+// RENDER TABEL SOAL UJIAN
+function renderExamTable() {
     const tbody = document.getElementById('examTableBody');
+    const info = document.getElementById('examCountInfo');
     if (!tbody) return;
 
-    if (data && data.length > 0) {
-        allExamsData = data;
-        tbody.innerHTML = data.map(e => `
+    if (filteredExamsData.length > 0) {
+        tbody.innerHTML = filteredExamsData.map(e => `
             <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-                <td class="p-4 font-bold text-slate-700">${e.student_class}</td>
-                <td class="p-4 font-semibold text-slate-700">${e.subject_name}</td>
-                <td class="p-4">
+                <td class="p-3.5 font-bold text-slate-700">
+                    <span class="px-2.5 py-1 rounded-lg ${e.student_class === 'SEMUA' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'}">
+                        ${e.student_class || 'SEMUA'}
+                    </span>
+                </td>
+                <td class="p-3.5 font-semibold text-slate-800">${e.subject_name}</td>
+                <td class="p-3.5">
                     <button onclick="toggleExamStatus(${e.id}, ${!e.is_active})" class="px-3 py-1.5 rounded-full text-xs font-bold transition ${e.is_active ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}">
                         ${e.is_active ? '🟢 TAMPIL (AKTIF)' : '🔴 DISEMBUNYIKAN'}
                     </button>
                 </td>
-                <td class="p-4 text-xs text-slate-500">
+                <td class="p-3.5 text-xs text-slate-500 font-mono">
                     ${e.start_time ? new Date(e.start_time).toLocaleString('id-ID') : 'Langsung'} s/d <br>
                     ${e.end_time ? new Date(e.end_time).toLocaleString('id-ID') : 'Tidak dibatasi'}
                 </td>
-                <td class="p-4 space-x-2">
+                <td class="p-3.5 text-center space-x-2">
                     <button onclick='openEditExamModal(${JSON.stringify(e)})' class="text-xs bg-amber-50 text-amber-700 font-semibold px-3 py-1.5 rounded-lg hover:bg-amber-100 transition">Edit</button>
                     <button onclick="deleteExam(${e.id})" class="text-xs bg-red-50 text-red-600 font-semibold px-3 py-1.5 rounded-lg hover:bg-red-100 transition">Hapus</button>
                 </td>
             </tr>
         `).join('');
     } else {
-        allExamsData = [];
-        tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400">Belum ada link soal ditambahkan</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400">Tidak ada data soal ditemukan</td></tr>`;
     }
+
+    if (info) info.innerText = `Menampilkan ${filteredExamsData.length} dari total ${allExamsData.length} soal ujian`;
 }
 
 async function toggleExamStatus(id, newStatus) {
     const client = getSupabase();
     if (!client) return;
-    await client.from('exams').update({ is_active: newStatus }).eq('id', id);
+    await client.from('exams').update({ is_active: newStatus }).eq('id', parseInt(id, 10));
     fetchExams();
 }
 
@@ -287,26 +357,18 @@ async function deleteExam(id) {
     showModernConfirm('Apakah Anda yakin ingin menghapus tautan soal ini?', 'Hapus Soal', async () => {
         const client = getSupabase();
         if (!client) return;
-        await client.from('exams').delete().eq('id', id);
+        await client.from('exams').delete().eq('id', parseInt(id, 10));
         fetchExams();
     });
 }
 
 function openEditExamModal(exam) {
     document.getElementById('editExamId').value = exam.id;
-    
-    // Penyesuaian nama ID elemen HTML sesuai form modal di UI Admin
-    const inputClass = document.getElementById('editClass') || document.getElementById('editTargetClass');
-    const inputSubject = document.getElementById('editSubject') || document.getElementById('editSubjectName');
-    const inputUrl = document.getElementById('editUrl') || document.getElementById('editFormUrl');
-    
-    if (inputClass) inputClass.value = exam.student_class || '';
-    if (inputSubject) inputSubject.value = exam.subject_name || '';
-    if (inputUrl) inputUrl.value = exam.form_url || '';
-    
+    document.getElementById('editClass').value = exam.student_class || 'SEMUA';
+    document.getElementById('editSubject').value = exam.subject_name || '';
+    document.getElementById('editUrl').value = exam.form_url || '';
     document.getElementById('editStartTime').value = exam.start_time ? exam.start_time.slice(0, 16) : '';
     document.getElementById('editEndTime').value = exam.end_time ? exam.end_time.slice(0, 16) : '';
-    
     document.getElementById('editExamModal')?.classList.remove('hidden');
 }
 
@@ -315,67 +377,18 @@ document.getElementById('editExamForm')?.addEventListener('submit', async (e) =>
     const client = getSupabase();
     if (!client) return;
 
-    // 1. Wajib parse ID ke Integer agar cocok dengan tipe int8 kolom database Supabase
     const rawId = document.getElementById('editExamId').value;
     const id = parseInt(rawId, 10);
-
-    // 2. Ambil nilai input secara dinamis (mengakomodasi variasi ID HTML)
-    const student_class = (document.getElementById('editClass') || document.getElementById('editTargetClass'))?.value.trim();
-    const subject_name = (document.getElementById('editSubject') || document.getElementById('editSubjectName'))?.value.trim();
-    const form_url = (document.getElementById('editUrl') || document.getElementById('editFormUrl'))?.value.trim();
-    
-    const startTimeVal = document.getElementById('editStartTime').value;
-    const endTimeVal = document.getElementById('editEndTime').value;
-
-    const start_time = startTimeVal ? new Date(startTimeVal).toISOString() : null;
-    const end_time = endTimeVal ? new Date(endTimeVal).toISOString() : null;
-
-    if (!id || isNaN(id)) {
-        showModernAlert('ID Ujian tidak valid!', 'Gagal Update', 'error');
-        return;
-    }
-
-    // 3. Eksekusi Update ke Supabase
-    const { data, error } = await client
-        .from('exams')
-        .update({ 
-            student_class, 
-            subject_name, 
-            form_url, 
-            start_time, 
-            end_time 
-        })
-        .eq('id', id)
-        .select();
-
-    if (!error && data && data.length > 0) {
-        closeEditModal('editExamModal');
-        await fetchExams();
-        showModernAlert('Data soal berhasil diperbarui!', 'Berhasil', 'success');
-    } else if (error) {
-        showModernAlert('Gagal mengupdate soal: ' + error.message, 'Gagal', 'error');
-    } else {
-        // Fallback jika 0 baris ter-update (misal mismatch RLS)
-        showModernAlert('Data tidak dapat diperbarui. Pastikan RLS UPDATE pada tabel exams telah diaktifkan.', 'Peringatan', 'error');
-    }
-});
-
-document.getElementById('editExamForm')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const client = getSupabase();
-    if (!client) return;
-
-    const id = document.getElementById('editExamId').value;
-    const student_class = document.getElementById('editClass').value.trim();
+    const student_class = document.getElementById('editClass').value;
     const subject_name = document.getElementById('editSubject').value.trim();
     const form_url = document.getElementById('editUrl').value.trim();
-    const start_time = document.getElementById('editStartTime').value || null;
-    const end_time = document.getElementById('editEndTime').value || null;
+    const start_time = document.getElementById('editStartTime').value ? new Date(document.getElementById('editStartTime').value).toISOString() : null;
+    const end_time = document.getElementById('editEndTime').value ? new Date(document.getElementById('editEndTime').value).toISOString() : null;
 
     const { error } = await client.from('exams').update({ student_class, subject_name, form_url, start_time, end_time }).eq('id', id);
     if (!error) {
         closeEditModal('editExamModal');
-        fetchExams();
+        await fetchExams();
         showModernAlert('Data soal berhasil diperbarui!', 'Berhasil', 'success');
     } else {
         showModernAlert('Gagal mengupdate soal: ' + error.message, 'Gagal', 'error');
@@ -389,15 +402,15 @@ if (addExamForm) {
         const client = getSupabase();
         if (!client) return;
 
-        const student_class = document.getElementById('inputClass').value.trim();
+        const student_class = document.getElementById('inputClass').value;
         const subject_name = document.getElementById('inputSubject').value.trim();
         const form_url = document.getElementById('inputUrl').value.trim();
-        const start_time = document.getElementById('inputStartTime').value || null;
-        const end_time = document.getElementById('inputEndTime').value || null;
+        const start_time = document.getElementById('inputStartTime').value ? new Date(document.getElementById('inputStartTime').value).toISOString() : null;
+        const end_time = document.getElementById('inputEndTime').value ? new Date(document.getElementById('inputEndTime').value).toISOString() : null;
 
         await client.from('exams').insert([{ student_class, subject_name, form_url, start_time, end_time, is_active: true }]);
         addExamForm.reset();
-        fetchExams();
+        await fetchExams();
         showModernAlert('Soal ujian berhasil ditambahkan!', 'Berhasil', 'success');
     });
 }
@@ -584,7 +597,7 @@ async function deleteStudent(id) {
     showModernConfirm('Hapus data akun siswa ini dari database?', 'Hapus Siswa', async () => {
         const client = getSupabase();
         if (!client) return;
-        await client.from('students').delete().eq('id', id);
+        await client.from('students').delete().eq('id', parseInt(id, 10));
         fetchStudents();
     });
 }
@@ -603,7 +616,7 @@ document.getElementById('editStudentForm')?.addEventListener('submit', async (e)
     const client = getSupabase();
     if (!client) return;
 
-    const id = document.getElementById('editStudentId').value;
+    const id = parseInt(document.getElementById('editStudentId').value, 10);
     const nisn = document.getElementById('editStudentNisn').value.trim();
     const nama = document.getElementById('editStudentName').value.trim();
     const student_class = document.getElementById('editStudentClass').value.trim();
@@ -887,7 +900,7 @@ async function deleteSubmission(id) {
     showModernConfirm('Hapus riwayat pengerjaan mapel ini? Siswa akan dapat mengerjakan mapel ini dari awal.', 'Hapus Riwayat', async () => {
         const client = getSupabase();
         if (!client) return;
-        await client.from('exam_submissions').delete().eq('id', id);
+        await client.from('exam_submissions').delete().eq('id', parseInt(id, 10));
         fetchHistory();
     });
 }
@@ -910,7 +923,7 @@ async function deleteAllSubmissions() {
 async function toggleRetestPermission(id, newCompletedState) {
     const client = getSupabase();
     if (!client) return;
-    await client.from('exam_submissions').update({ is_completed: newCompletedState }).eq('id', id);
+    await client.from('exam_submissions').update({ is_completed: newCompletedState }).eq('id', parseInt(id, 10));
     fetchHistory();
 }
 
