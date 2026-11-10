@@ -159,15 +159,22 @@ function checkAuth() {
     }
 }
 
-function initDashboard() {
+async function initDashboard() {
     if (loginModal) loginModal.classList.add('hidden');
     if (dashboardApp) dashboardApp.classList.remove('hidden');
     
-    // Sinkronkan pilihan dropdown server jika ada
     const selectElem = document.getElementById('selectAdminServer');
     if (selectElem && window.currentServerKey) {
         selectElem.value = window.currentServerKey;
     }
+
+    // Ambil data soal terlebih dahulu agar mapel ter-cache
+    await fetchExams();
+    
+    fetchGlobalSettings();
+    fetchStudents();
+    fetchHistory();
+}
 
     fetchGlobalSettings();
     fetchExams();
@@ -293,9 +300,16 @@ function renderHistoryTable() {
 
     if (pageData.length > 0) {
         tbody.innerHTML = pageData.map(h => {
-            // Cari nama mapel asli dari tabel exams berdasarkan ID (misal ID 7 -> Uji Coba 2)
-            const rawSubject = h.subject_name || h.subject_id;
-            const matchExam = allExamsData.find(e => String(e.id) === String(rawSubject));
+            // Ambil ID / String Mapel dari record submission
+            const rawSubject = String(h.subject_name || h.subject_id || '').trim();
+            
+            // Cari pencocokan ke daftar soal (baik berdasarkan ID maupun Nama Mapel)
+            const matchExam = (allExamsData || []).find(e => 
+                String(e.id).trim() === rawSubject || 
+                (e.subject_name && e.subject_name.trim().toLowerCase() === rawSubject.toLowerCase())
+            );
+
+            // Jika ketemu match, gunakan subject_name dari tabel exams
             const displaySubjectName = matchExam ? matchExam.subject_name : (rawSubject || 'Ujian CBT');
 
             return `
