@@ -634,8 +634,13 @@ async function handleExcelImport() {
 }
 
 // ==========================================
-// 4. RIWAYAT PENGERJAAN SISWA (EXAM_SUBMISSIONS)
+// 4. RIWAYAT PENGERJAAN SISWA (PAGINASI, FILTER & MULTI-MAPEL)
 // ==========================================
+let allHistoryData = [];
+let filteredHistoryData = [];
+let currentHistoryPage = 1;
+let historyRowsPerPage = 25;
+
 async function fetchHistory() {
     const client = getSupabase();
     if (!client) return;
@@ -645,21 +650,102 @@ async function fetchHistory() {
         .select('*')
         .order('created_at', { ascending: false });
 
+    if (!error && data) {
+        allHistoryData = data;
+        populateHistoryFilterOptions();
+        filterHistory();
+    } else {
+        allHistoryData = [];
+        renderHistoryTable();
+    }
+}
+
+function populateHistoryFilterOptions() {
+    const classSelect = document.getElementById('filterHistoryClassSelect');
+    const subjectSelect = document.getElementById('filterHistorySubjectSelect');
+
+    if (classSelect) {
+        const currentClass = classSelect.value;
+        const classes = [...new Set(allHistoryData.map(h => h.student_class).filter(Boolean))].sort();
+        classSelect.innerHTML = `<option value="">Semua Kelas / Rombel</option>` + 
+            classes.map(c => `<option value="${c}">${c}</option>`).join('');
+        classSelect.value = currentClass;
+    }
+
+    if (subjectSelect) {
+        const currentSubject = subjectSelect.value;
+        const subjects = [...new Set(allHistoryData.map(h => h.subject_name || h.subject_id).filter(Boolean))].sort();
+        subjectSelect.innerHTML = `<option value="">Semua Mata Pelajaran</option>` + 
+            subjects.map(s => `<option value="${s}">${s}</option>`).join('');
+        subjectSelect.value = currentSubject;
+    }
+}
+
+function filterHistory() {
+    const searchVal = document.getElementById('searchHistoryInput')?.value.toLowerCase().trim() || '';
+    const classVal = document.getElementById('filterHistoryClassSelect')?.value || '';
+    const subjectVal = document.getElementById('filterHistorySubjectSelect')?.value || '';
+    const sortVal = document.getElementById('sortHistorySelect')?.value || 'time_desc';
+
+    filteredHistoryData = allHistoryData.filter(h => {
+        const matchesSearch = !searchVal || 
+            (h.nisn && h.nisn.toLowerCase().includes(searchVal)) || 
+            (h.student_name && h.student_name.toLowerCase().includes(searchVal));
+
+        const matchesClass = !classVal || h.student_class === classVal;
+        const matchesSubject = !subjectVal || (h.subject_name || h.subject_id) === subjectVal;
+
+        return matchesSearch && matchesClass && matchesSubject;
+    });
+
+    filteredHistoryData.sort((a, b) => {
+        if (sortVal === 'time_desc') {
+            return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+        } else if (sortVal === 'nama_asc') {
+            return (a.student_name || '').localeCompare(b.student_name || '');
+        } else if (sortVal === 'nisn_asc') {
+            return (a.nisn || '').localeCompare(b.nisn || '', undefined, { numeric: true });
+        } else if (sortVal === 'class_asc') {
+            return (a.student_class || '').localeCompare(b.student_class || '');
+        }
+        return 0;
+    });
+
+    currentHistoryPage = 1;
+    renderHistoryTable();
+}
+
+function renderHistoryTable() {
     const tbody = document.getElementById('historyTableBody');
     if (!tbody) return;
 
-    if (!error && data && data.length > 0) {
-        tbody.innerHTML = data.map(h => `
+    const total = filteredHistoryData.length;
+    const totalPages = Math.ceil(total / historyRowsPerPage) || 1;
+
+    if (currentHistoryPage < 1) currentHistoryPage = 1;
+    if (currentHistoryPage > totalPages) currentHistoryPage = totalPages;
+
+    const startIdx = (currentHistoryPage - 1) * historyRowsPerPage;
+    const endIdx = Math.min(startIdx + historyRowsPerPage, total);
+
+    const pageData = filteredHistoryData.slice(startIdx, endIdx);
+
+    if (pageData.length > 0) {
+        tbody.innerHTML = pageData.map(h => `
             <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-                <td class="p-4 font-mono font-bold text-slate-700">${h.nisn}</td>
-                <td class="p-4 font-semibold text-slate-700">${h.student_name || 'Siswa'}</td>
-                <td class="p-4 font-bold"><span class="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-md text-xs">${h.student_class}</span></td>
-                <td class="p-4">
-                    <span class="px-2.5 py-1 rounded-full text-xs font-bold ${h.is_completed ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
+                <td class="p-3 font-mono font-bold text-slate-800">${h.nisn}</td>
+                <td class="p-3 font-bold text-slate-800 uppercase">${h.student_name || 'Siswa'}</td>
+                <td class="p-3 font-semibold text-slate-600">${h.student_class || '-'}</td>
+                <td class="p-3 font-bold text-blue-700">${h.subject_name || h.subject_id || 'Ujian CBT'}</td>
+                <td class="p-3 text-slate-500 font-mono text-[11px]">
+                    ${h.created_at ? new Date(h.created_at).toLocaleString('id-ID') : '-'}
+                </td>
+                <td class="p-3">
+                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold ${h.is_completed ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
                         ${h.is_completed ? 'Terkunci (Selesai)' : 'Sedang Mengerjakan'}
                     </span>
                 </td>
-                <td class="p-4 space-x-2">
+                <td class="p-3 text-center space-x-2">
                     <button onclick="toggleRetestPermission(${h.id}, ${!h.is_completed})" class="text-xs bg-slate-800 hover:bg-slate-900 text-white font-semibold px-3 py-1.5 rounded-lg transition">
                         ${h.is_completed ? 'Izinkan Ujian Ulang' : 'Kunci Ujian'}
                     </button>
@@ -670,12 +756,49 @@ async function fetchHistory() {
             </tr>
         `).join('');
     } else {
-        tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400">Belum ada riwayat pengerjaan siswa</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-400">Tidak ada riwayat pengerjaan ditemukan</td></tr>`;
+    }
+
+    const info = document.getElementById('historyPaginationInfo');
+    if (info) {
+        info.innerText = total > 0 
+            ? `Menampilkan ${startIdx + 1}-${endIdx} dari ${total} data` 
+            : `Menampilkan 0 dari 0 data`;
+    }
+
+    const lblPage = document.getElementById('lblCurrentHistoryPage');
+    if (lblPage) lblPage.innerText = `Hal ${currentHistoryPage} / ${totalPages}`;
+
+    const btnPrev = document.getElementById('btnPrevHistoryPage');
+    const btnNext = document.getElementById('btnNextHistoryPage');
+
+    if (btnPrev) btnPrev.disabled = (currentHistoryPage <= 1);
+    if (btnNext) btnNext.disabled = (currentHistoryPage >= totalPages);
+}
+
+function changeHistoryRowsPerPage(val) {
+    historyRowsPerPage = parseInt(val) || 25;
+    currentHistoryPage = 1;
+    renderHistoryTable();
+}
+
+function prevHistoryPage() {
+    if (currentHistoryPage > 1) {
+        currentHistoryPage--;
+        renderHistoryTable();
+    }
+}
+
+function nextHistoryPage() {
+    const totalPages = Math.ceil(filteredHistoryData.length / historyRowsPerPage) || 1;
+    if (currentHistoryPage < totalPages) {
+        currentHistoryPage++;
+        renderHistoryTable();
     }
 }
 
 async function deleteSubmission(id) {
-    showModernConfirm('Hapus riwayat pengerjaan siswa ini? Siswa akan dapat mengerjakan ujian dari awal.', 'Hapus Riwayat', async () => {
+    showModernConfirm('Hapus riwayat pengerjaan mapel ini? Siswa akan dapat mengerjakan mapel ini dari awal.', 'Hapus Riwayat', async () => {
         const client = getSupabase();
         if (!client) return;
         await client.from('exam_submissions').delete().eq('id', id);
