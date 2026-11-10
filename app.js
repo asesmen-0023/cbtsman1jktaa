@@ -341,7 +341,7 @@ if (addExamForm) {
 }
 
 // ==========================================
-// 3. DATABASE SISWA (MODEL DESAIN BARU: PAGINASI & FILTER)
+// 3. DATABASE SISWA (PAGINASI & FILTER & SORT)
 // ==========================================
 let allStudentsData = [];
 let filteredStudentsData = [];
@@ -409,24 +409,6 @@ function filterStudents() {
     renderStudentTable();
 }
 
-function updateSesiCounters() {
-    const countSesi1 = allStudentsData.filter((_, idx) => idx % 2 === 0).length;
-    const countSesi2 = allStudentsData.length - countSesi1;
-
-    const lbl1 = document.getElementById('lblCountSesi1');
-    const lbl2 = document.getElementById('lblCountSesi2');
-    const bar1 = document.getElementById('barSesi1');
-    const bar2 = document.getElementById('barSesi2');
-
-    if (lbl1) lbl1.innerText = `${countSesi1} (${allStudentsData.length ? Math.round(countSesi1/allStudentsData.length*100) : 0}%)`;
-    if (lbl2) lbl2.innerText = `${countSesi2} (${allStudentsData.length ? Math.round(countSesi2/allStudentsData.length*100) : 0}%)`;
-
-    if (bar1 && bar2 && allStudentsData.length > 0) {
-        bar1.style.width = `${(countSesi1/allStudentsData.length)*100}%`;
-        bar2.style.width = `${(countSesi2/allStudentsData.length)*100}%`;
-    }
-}
-
 function renderStudentTable() {
     const tbody = document.getElementById('studentTableBody');
     if (!tbody) return;
@@ -444,26 +426,26 @@ function renderStudentTable() {
 
     if (pageData.length > 0) {
         tbody.innerHTML = pageData.map(s => `
-    <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-        <td class="p-3 text-center">
-            <input type="checkbox" value="${s.id}" class="student-checkbox rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-        </td>
-        <td class="p-3 font-mono font-bold text-slate-800">${s.nisn}</td>
-        <td class="p-3 font-bold text-slate-800 uppercase">${s.nama}</td>
-        <td class="p-3 font-semibold text-slate-600">${s.student_class}</td>
-        <td class="p-3 font-mono text-xs text-slate-500">${s.password || '<i class="text-slate-300">Default (NISN)</i>'}</td>
-        <td class="p-3 text-center space-x-1">
-            <button onclick='openEditStudentModal(${JSON.stringify(s)})' class="p-1.5 text-slate-500 hover:text-amber-600 rounded-lg hover:bg-amber-50 transition" title="Edit Data">
-                ✏️
-            </button>
-            <button onclick="deleteStudent(${s.id})" class="p-1.5 text-slate-500 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition" title="Hapus Siswa">
-                🗑️
-            </button>
-        </td>
-    </tr>
-`).join('');
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                <td class="p-3 text-center">
+                    <input type="checkbox" value="${s.id}" class="student-checkbox rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                </td>
+                <td class="p-3 font-mono font-bold text-slate-800">${s.nisn}</td>
+                <td class="p-3 font-bold text-slate-800 uppercase">${s.nama}</td>
+                <td class="p-3 font-semibold text-slate-600">${s.student_class}</td>
+                <td class="p-3 font-mono text-xs text-slate-500">${s.password || '<i class="text-slate-300">Default (NISN)</i>'}</td>
+                <td class="p-3 text-center space-x-1">
+                    <button onclick='openEditStudentModal(${JSON.stringify(s)})' class="p-1.5 text-slate-500 hover:text-amber-600 rounded-lg hover:bg-amber-50 transition" title="Edit Data">
+                        ✏️
+                    </button>
+                    <button onclick="deleteStudent(${s.id})" class="p-1.5 text-slate-500 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition" title="Hapus Siswa">
+                        🗑️
+                    </button>
+                </td>
+            </tr>
+        `).join('');
     } else {
-        tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-slate-400">Tidak ada data siswa ditemukan</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400">Tidak ada data siswa ditemukan</td></tr>`;
     }
 
     const info = document.getElementById('studentPaginationInfo');
@@ -560,12 +542,11 @@ document.getElementById('editStudentForm')?.addEventListener('submit', async (e)
     if (!client) return;
 
     const id = document.getElementById('editStudentId').value;
-    const nisn = document.getElementById('editStudentNisn').value.trim(); // Tambahkan baris ini
+    const nisn = document.getElementById('editStudentNisn').value.trim();
     const nama = document.getElementById('editStudentName').value.trim();
     const student_class = document.getElementById('editStudentClass').value.trim();
     const password = document.getElementById('editStudentPassword').value.trim() || null;
 
-    // Tambahkan nisn ke dalam object update
     const { error } = await client.from('students').update({ nisn, nama, student_class, password }).eq('id', id);
     if (!error) {
         closeEditModal('editStudentModal');
