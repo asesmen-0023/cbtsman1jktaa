@@ -211,26 +211,76 @@ async function fetchGlobalSettings() {
     }
 }
 
-async function saveGlobalSettings() {
-    const client = getSupabase();
-    if (!client) return;
-
+async function saveGlobalSettings(syncAll = false) {
     const enter_password = document.getElementById('globalEnterPassword').value.trim() || '12345';
     const exit_password = document.getElementById('globalExitPassword').value.trim() || '123456';
     const screen_brightness = parseInt(document.getElementById('globalBrightness').value) || 100;
     const sound_volume = parseInt(document.getElementById('globalVolume').value) || 100;
 
-    const { error } = await client.from('app_settings').upsert({
+    // Payload bersih tanpa 'updated_at' agar aman untuk semua database server
+    const payload = {
         id: 1,
         enter_password,
         exit_password,
         screen_brightness,
-        sound_volume,
-        updated_at: new Date()
-    });
+        sound_volume
+    };
+
+    // ==========================================
+    // SKEMA 2: SINKRON KE SEMUA SERVER (X, XI, XII)
+    // ==========================================
+    if (syncAll) {
+        if (typeof SUPABASE_SERVERS === 'undefined' || !window.supabase) {
+            showModernAlert('Konfigurasi multi-server tidak ditemukan.', 'Gagal', 'error');
+            return;
+        }
+
+        const serverKeys = Object.keys(SUPABASE_SERVERS);
+        const results = await Promise.all(
+            serverKeys.map(async (key) => {
+                const srv = SUPABASE_SERVERS[key];
+                const tempClient = window.supabase.createClient(srv.url, srv.anonKey || srv.key || srv.apiKey);
+                const { error } = await tempClient.from('app_settings').upsert(payload);
+                return { key, name: srv.name || `Kelas ${key}`, error };
+            })
+        );
+
+        const failed = results.filter(r => r.error);
+        if (failed.length === 0) {
+            showModernAlert(
+                'Pengaturan Global CBT berhasil disinkronkan ke seluruh server (X, XI, dan XII)!',
+                'Sinkronisasi Semua Server Berhasil',
+                'success'
+            );
+        } else {
+            const errDetails = failed.map(f => `• <b>${f.name}</b>: ${f.error.message}`).join('<br>');
+            showModernAlert('Sebagian server gagal diperbarui:<br>' + errDetails, 'Peringatan Sinkronisasi', 'error');
+        }
+        return;
+    }
+
+    // ==========================================
+    // SKEMA 1: SIMPAN HANYA DI SERVER AKTIF SAAT INI
+    // ==========================================
+    const client = getSupabase();
+    if (!client) {
+        showModernAlert('Koneksi database server aktif tidak tersedia.', 'Gagal', 'error');
+        return;
+    }
+
+    const activeKey = window.currentServerKey || 'Aktif';
+    const activeName = (typeof SUPABASE_SERVERS !== 'undefined' && SUPABASE_SERVERS[activeKey])
+        ? SUPABASE_SERVERS[activeKey].name
+        : `Server ${activeKey}`;
+
+    const { error } = await client.from('app_settings').upsert(payload);
 
     if (!error) {
-        showModernAlert('Pengaturan Global CBT Berhasil Diperbarui!', 'Berhasil', 'success');
+        showModernAlert(
+            `Pengaturan berhasil disimpan khusus untuk <b>${activeName}</b>!`,
+            'Berhasil Disimpan',
+            'success'
+        );
     } else {
         showModernAlert('Gagal menyimpan pengaturan: ' + error.message, 'Gagal', 'error');
     }
