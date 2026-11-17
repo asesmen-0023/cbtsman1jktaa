@@ -422,6 +422,31 @@ function openEditExamModal(exam) {
     document.getElementById('editExamModal')?.classList.remove('hidden');
 }
 
+// Helper untuk mendapatkan daftar rombel aktif di server saat ini (misal: XI-1 s.d. XI-8)
+async function getAvailableClassesForCurrentServer(client) {
+    // 1. Prioritaskan daftar kelas unik dari data siswa yang sudah dimuat / ada di database
+    let classesFromStudents = [...new Set((allStudentsData || []).map(s => (s.student_class || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+    if (classesFromStudents.length === 0 && client) {
+        const { data } = await client.from('students').select('student_class');
+        if (data && data.length > 0) {
+            classesFromStudents = [...new Set(data.map(s => (s.student_class || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+        }
+    }
+
+    if (classesFromStudents.length > 0) {
+        return classesFromStudents;
+    }
+
+    // 2. Fallback jika tabel students masih kosong -> gunakan 1..10 sesuai angkatan server
+    const serverKey = window.currentServerKey || (typeof getActiveServerKey === 'function' ? getActiveServerKey() : 'XI');
+    const fallbackClasses = [];
+    for (let i = 1; i <= 10; i++) {
+        fallbackClasses.push(`${serverKey}-${i}`);
+    }
+    return fallbackClasses;
+}
+
 document.getElementById('editExamForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const client = getSupabase();
@@ -434,6 +459,30 @@ document.getElementById('editExamForm')?.addEventListener('submit', async (e) =>
     const form_url = document.getElementById('editUrl').value.trim();
     const start_time = document.getElementById('editStartTime').value ? new Date(document.getElementById('editStartTime').value).toISOString() : null;
     const end_time = document.getElementById('editEndTime').value ? new Date(document.getElementById('editEndTime').value).toISOString() : null;
+
+    // Jika saat Edit diubah menjadi "SEMUA", pecah menjadi baris per kelas dan hapus baris lama
+    if (student_class === 'SEMUA') {
+        const targetClasses = await getAvailableClassesForCurrentServer(client);
+        const rowsToInsert = targetClasses.map(cls => ({
+            student_class: cls,
+            subject_name,
+            form_url,
+            start_time,
+            end_time,
+            is_active: true
+        }));
+
+        const { error: insertErr } = await client.from('exams').insert(rowsToInsert);
+        if (!insertErr) {
+            await client.from('exams').delete().eq('id', id);
+            closeEditModal('editExamModal');
+            await fetchExams();
+            showModernAlert(`Soal berhasil didistribusikan ke ${targetClasses.length} rombel (${targetClasses.join(', ')})!`, 'Berhasil', 'success');
+        } else {
+            showModernAlert('Gagal mendistribusikan soal: ' + insertErr.message, 'Gagal', 'error');
+        }
+        return;
+    }
 
     const { error } = await client.from('exams').update({ student_class, subject_name, form_url, start_time, end_time }).eq('id', id);
     if (!error) {
@@ -458,10 +507,42 @@ if (addExamForm) {
         const start_time = document.getElementById('inputStartTime').value ? new Date(document.getElementById('inputStartTime').value).toISOString() : null;
         const end_time = document.getElementById('inputEndTime').value ? new Date(document.getElementById('inputEndTime').value).toISOString() : null;
 
-        await client.from('exams').insert([{ student_class, subject_name, form_url, start_time, end_time, is_active: true }]);
-        addExamForm.reset();
-        await fetchExams();
-        showModernAlert('Soal ujian berhasil ditambahkan!', 'Berhasil', 'success');
+        // JIKA MEMILIH "SEMUA": Otomatis pecah dan simpan 1 baris per rombel agar 100% terbaca di APK siswa
+        if (student_class === 'SEMUA') {
+            const targetClasses = await getAvailableClassesForCurrentServer(client);
+            const rowsToInsert = targetClasses.map(cls => ({
+                student_class: cls,
+                subject_name,
+                form_url,
+                start_time,
+                end_time,
+                is_active: true
+            }));
+
+            const { error } = await client.from('exams').insert(rowsToInsert);
+            if (!error) {
+                addExamForm.reset();
+                await fetchExams();
+                showModernAlert(
+                    `Soal ujian berhasil ditambahkan untuk seluruh ${targetClasses.length} rombel (${targetClasses.join(', ')})!`,
+                    'Berhasil',
+                    'success'
+                );
+            } else {
+                showModernAlert('Gagal menambahkan soal massal: ' + error.message, 'Gagal', 'error');
+            }
+            return;
+        }
+
+        // JIKA MEMILIH ROMBEL SPESIFIK
+        const { error } = await client.from('exams').insert([{ student_class, subject_name, form_url, start_time, end_time, is_active: true }]);
+        if (!error) {
+            addExamForm.reset();
+            await fetchExams();
+            showModernAlert('Soal ujian berhasil ditambahkan!', 'Berhasil', 'success');
+        } else {
+            showModernAlert('Gagal menambahkan soal: ' + error.message, 'Gagal', 'error');
+        }
     });
 }
 
@@ -736,7 +817,7 @@ async function handleExcelImport() {
             const formattedStudents = jsonData.map(item => ({
                 nisn: String(item.NISN || item.nisn || '').trim(),
                 nama: String(item.NAMA || item.nama || '').trim(),
-                student_class: String(item.KELAS || item.student_class || '').trim(),
+                student_class: String(item.KELAS || item.student_class || '').trim().replace(/\s+/g, ''),
                 password: item.PASSWORD || item.password ? String(item.PASSWORD || item.password).trim() : null
             })).filter(s => s.nisn && s.nama && s.student_class);
 
