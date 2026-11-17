@@ -422,15 +422,26 @@ function openEditExamModal(exam) {
     document.getElementById('editExamModal')?.classList.remove('hidden');
 }
 
-// Helper untuk mendapatkan daftar rombel aktif di server saat ini (misal: XI-1 s.d. XI-8)
+// Helper untuk mendapatkan daftar rombel KHUSUS tingkatan angkatan aktif (misal: X-1 s.d. X-8)
 async function getAvailableClassesForCurrentServer(client) {
-    // 1. Prioritaskan daftar kelas unik dari data siswa yang sudah dimuat / ada di database
-    let classesFromStudents = [...new Set((allStudentsData || []).map(s => (s.student_class || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    // Ambil kunci angkatan aktif ('X', 'XI', atau 'XII')
+    const serverKey = (window.currentServerKey || (typeof getActiveServerKey === 'function' ? getActiveServerKey() : 'XI')).trim().toUpperCase();
+    const prefix = `${serverKey}-`; // Contoh: 'X-', 'XI-', atau 'XII-'
 
+    // 1. Ambil daftar kelas unik dari data siswa yang sudah dimuat, lalu saring HANYA sesuai prefix angkatan
+    let classesFromStudents = [...new Set((allStudentsData || [])
+        .map(s => (s.student_class || '').trim().toUpperCase())
+        .filter(cls => cls.startsWith(prefix))
+    )].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+    // 2. Jika allStudentsData belum terisi, ambil langsung dari tabel students Supabase dan saring sesuai prefix
     if (classesFromStudents.length === 0 && client) {
         const { data } = await client.from('students').select('student_class');
         if (data && data.length > 0) {
-            classesFromStudents = [...new Set(data.map(s => (s.student_class || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+            classesFromStudents = [...new Set(data
+                .map(s => (s.student_class || '').trim().toUpperCase())
+                .filter(cls => cls.startsWith(prefix))
+            )].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
         }
     }
 
@@ -438,10 +449,9 @@ async function getAvailableClassesForCurrentServer(client) {
         return classesFromStudents;
     }
 
-    // 2. Fallback jika tabel students masih kosong -> gunakan 1..10 sesuai angkatan server
-    const serverKey = window.currentServerKey || (typeof getActiveServerKey === 'function' ? getActiveServerKey() : 'XI');
+    // 3. Fallback jika tabel students masih kosong -> buat 1..8 sesuai angkatan aktif
     const fallbackClasses = [];
-    for (let i = 1; i <= 10; i++) {
+    for (let i = 1; i <= 8; i++) {
         fallbackClasses.push(`${serverKey}-${i}`);
     }
     return fallbackClasses;
