@@ -359,55 +359,186 @@ function filterExams() {
     renderExamTable();
 }
 
-// RENDER TABEL SOAL UJIAN
+// Menyimpan status grup mana yang sedang dibuka rinciannya
+let expandedExamGroups = new Set();
+
+function toggleExamGroupDetail(groupKey) {
+    if (expandedExamGroups.has(groupKey)) {
+        expandedExamGroups.delete(groupKey);
+    } else {
+        expandedExamGroups.add(groupKey);
+    }
+    renderExamTable();
+}
+
+// RENDER TABEL SOAL UJIAN (DENGAN PENGELOMPOKAN RINGKAS + TOGGLE RINCIAN)
 function renderExamTable() {
     const tbody = document.getElementById('examTableBody');
     const info = document.getElementById('examCountInfo');
     if (!tbody) return;
 
-    if (filteredExamsData.length > 0) {
-        tbody.innerHTML = filteredExamsData.map(e => `
-            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+    if (filteredExamsData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400">Tidak ada data soal ditemukan</td></tr>`;
+        if (info) info.innerText = `Menampilkan 0 dari total ${allExamsData.length} soal ujian`;
+        return;
+    }
+
+    // Kelompokkan item berdasarkan kesamaan subject_name, form_url, start_time, dan end_time
+    const groupsMap = new Map();
+    filteredExamsData.forEach(item => {
+        const key = `${(item.subject_name || '').trim().toLowerCase()}||${(item.form_url || '').trim()}||${item.start_time || ''}||${item.end_time || ''}`;
+        if (!groupsMap.has(key)) {
+            groupsMap.set(key, {
+                key,
+                subject_name: item.subject_name,
+                form_url: item.form_url,
+                start_time: item.start_time,
+                end_time: item.end_time,
+                items: []
+            });
+        }
+        groupsMap.get(key).items.push(item);
+    });
+
+    const groups = Array.from(groupsMap.values());
+    let htmlRows = '';
+
+    groups.forEach((group, idx) => {
+        // Urutkan rombel di dalam grup secara natural (X-1, X-2, ..., X-10)
+        group.items.sort((a, b) => (a.student_class || '').localeCompare(b.student_class || '', undefined, { numeric: true }));
+
+        // JIKA HANYA 1 ROMBEL: Tampilkan baris tunggal seperti biasa
+        if (group.items.length === 1) {
+            const e = group.items[0];
+            htmlRows += `
+                <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                    <td class="p-3.5 font-bold text-slate-700">
+                        <span class="px-2.5 py-1 rounded-lg ${e.student_class === 'SEMUA' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'}">
+                            ${e.student_class || 'SEMUA'}
+                        </span>
+                    </td>
+                    <td class="p-3.5 font-semibold text-slate-800">${e.subject_name}</td>
+                    <td class="p-3.5">
+                        <button onclick="toggleExamStatus([${e.id}], ${!e.is_active})" class="px-3 py-1.5 rounded-full text-xs font-bold transition ${e.is_active ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}">
+                            ${e.is_active ? '🟢 TAMPIL (AKTIF)' : '🔴 DISEMBUNYIKAN'}
+                        </button>
+                    </td>
+                    <td class="p-3.5 text-xs text-slate-500 font-mono">
+                        ${e.start_time ? new Date(e.start_time).toLocaleString('id-ID') : 'Langsung'} s/d <br>
+                        ${e.end_time ? new Date(e.end_time).toLocaleString('id-ID') : 'Tidak dibatasi'}
+                    </td>
+                    <td class="p-3.5 text-center space-x-2">
+                        <button onclick='openEditExamModal(${JSON.stringify(e)})' class="text-xs bg-amber-50 text-amber-700 font-semibold px-3 py-1.5 rounded-lg hover:bg-amber-100 transition">Edit</button>
+                        <button onclick="deleteExam([${e.id}])" class="text-xs bg-red-50 text-red-600 font-semibold px-3 py-1.5 rounded-lg hover:bg-red-100 transition">Hapus</button>
+                    </td>
+                </tr>`;
+            return;
+        }
+
+        // JIKA LEBIH DARI 1 ROMBEL: Tampilkan 1 baris ringkas + tombol Rincian
+        const groupId = `grp_${idx}`;
+        const isExpanded = expandedExamGroups.has(groupId);
+        const allIds = group.items.map(i => i.id);
+        const firstClass = group.items[0].student_class;
+        const lastClass = group.items[group.items.length - 1].student_class;
+        const activeCount = group.items.filter(i => i.is_active).length;
+        const isAllActive = activeCount === group.items.length;
+        const isPartialActive = activeCount > 0 && activeCount < group.items.length;
+
+        let statusBadgeClass = 'bg-slate-200 text-slate-600 hover:bg-slate-300';
+        let statusLabel = '🔴 DISEMBUNYIKAN';
+        if (isAllActive) {
+            statusBadgeClass = 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200';
+            statusLabel = '🟢 TAMPIL (SEMUA)';
+        } else if (isPartialActive) {
+            statusBadgeClass = 'bg-amber-100 text-amber-700 hover:bg-amber-200';
+            statusLabel = `🟡 SEBAGIAN (${activeCount}/${group.items.length})`;
+        }
+
+        // Baris Induk (Ringkas)
+        htmlRows += `
+            <tr class="bg-blue-50/40 hover:bg-blue-50/70 transition border-b border-slate-200">
                 <td class="p-3.5 font-bold text-slate-700">
-                    <span class="px-2.5 py-1 rounded-lg ${e.student_class === 'SEMUA' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'}">
-                        ${e.student_class || 'SEMUA'}
-                    </span>
+                    <div class="flex flex-wrap items-center gap-1.5">
+                        <span class="px-2.5 py-1 rounded-lg bg-blue-100 text-blue-700 text-xs">
+                            🌐 ${group.items.length} Rombel (${firstClass} s.d. ${lastClass})
+                        </span>
+                        <button onclick="toggleExamGroupDetail('${groupId}')" class="px-2 py-1 rounded-md bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 text-[11px] font-semibold transition shadow-2xs">
+                            ${isExpanded ? '▲ Tutup Rincian' : '▼ Rincian'}
+                        </button>
+                    </div>
                 </td>
-                <td class="p-3.5 font-semibold text-slate-800">${e.subject_name}</td>
+                <td class="p-3.5 font-bold text-slate-800">${group.subject_name}</td>
                 <td class="p-3.5">
-                    <button onclick="toggleExamStatus(${e.id}, ${!e.is_active})" class="px-3 py-1.5 rounded-full text-xs font-bold transition ${e.is_active ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}">
-                        ${e.is_active ? '🟢 TAMPIL (AKTIF)' : '🔴 DISEMBUNYIKAN'}
+                    <button onclick="toggleExamStatus(${JSON.stringify(allIds)}, ${!isAllActive})" class="px-3 py-1.5 rounded-full text-xs font-bold transition ${statusBadgeClass}" title="Klik untuk aktif/nonaktifkan semua rombel dalam grup ini">
+                        ${statusLabel}
                     </button>
                 </td>
                 <td class="p-3.5 text-xs text-slate-500 font-mono">
-                    ${e.start_time ? new Date(e.start_time).toLocaleString('id-ID') : 'Langsung'} s/d <br>
-                    ${e.end_time ? new Date(e.end_time).toLocaleString('id-ID') : 'Tidak dibatasi'}
+                    ${group.start_time ? new Date(group.start_time).toLocaleString('id-ID') : 'Langsung'} s/d <br>
+                    ${group.end_time ? new Date(group.end_time).toLocaleString('id-ID') : 'Tidak dibatasi'}
                 </td>
                 <td class="p-3.5 text-center space-x-2">
-                    <button onclick='openEditExamModal(${JSON.stringify(e)})' class="text-xs bg-amber-50 text-amber-700 font-semibold px-3 py-1.5 rounded-lg hover:bg-amber-100 transition">Edit</button>
-                    <button onclick="deleteExam(${e.id})" class="text-xs bg-red-50 text-red-600 font-semibold px-3 py-1.5 rounded-lg hover:bg-red-100 transition">Hapus</button>
+                    <button onclick="toggleExamGroupDetail('${groupId}')" class="text-xs bg-blue-50 text-blue-700 font-semibold px-3 py-1.5 rounded-lg hover:bg-blue-100 transition">
+                        ${isExpanded ? 'Sembunyikan' : 'Lihat Rombel'}
+                    </button>
+                    <button onclick="deleteExam(${JSON.stringify(allIds)}, true)" class="text-xs bg-red-50 text-red-600 font-semibold px-3 py-1.5 rounded-lg hover:bg-red-100 transition">Hapus Semua</button>
                 </td>
-            </tr>
-        `).join('');
-    } else {
-        tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400">Tidak ada data soal ditemukan</td></tr>`;
-    }
+            </tr>`;
 
-    if (info) info.innerText = `Menampilkan ${filteredExamsData.length} dari total ${allExamsData.length} soal ujian`;
+        // Baris Anak (Rincian per Rombel saat toggle Rincian diklik)
+        if (isExpanded) {
+            group.items.forEach(e => {
+                htmlRows += `
+                    <tr class="bg-slate-50/80 hover:bg-slate-100/80 transition border-b border-slate-100 text-xs">
+                        <td class="py-2.5 pl-8 pr-3.5 font-bold text-slate-600">
+                            <span class="text-slate-400 mr-1.5">↳</span>
+                            <span class="px-2.5 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700">
+                                ${e.student_class}
+                            </span>
+                        </td>
+                        <td class="py-2.5 px-3.5 text-slate-600">${e.subject_name}</td>
+                        <td class="py-2.5 px-3.5">
+                            <button onclick="toggleExamStatus([${e.id}], ${!e.is_active})" class="px-2.5 py-1 rounded-full text-[11px] font-bold transition ${e.is_active ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}">
+                                ${e.is_active ? '🟢 TAMPIL (AKTIF)' : '🔴 DISEMBUNYIKAN'}
+                            </button>
+                        </td>
+                        <td class="py-2.5 px-3.5 text-[11px] text-slate-400 font-mono">
+                            ${e.start_time ? new Date(e.start_time).toLocaleString('id-ID') : 'Langsung'} s/d ${e.end_time ? new Date(e.end_time).toLocaleString('id-ID') : 'Tidak dibatasi'}
+                        </td>
+                        <td class="py-2.5 px-3.5 text-center space-x-1.5">
+                            <button onclick='openEditExamModal(${JSON.stringify(e)})' class="text-[11px] bg-amber-50 text-amber-700 font-semibold px-2.5 py-1 rounded-md hover:bg-amber-100 transition">Edit</button>
+                            <button onclick="deleteExam([${e.id}])" class="text-[11px] bg-red-50 text-red-600 font-semibold px-2.5 py-1 rounded-md hover:bg-red-100 transition">Hapus</button>
+                        </td>
+                    </tr>`;
+            });
+        }
+    });
+
+    tbody.innerHTML = htmlRows;
+    if (info) info.innerText = `Menampilkan ${groups.length} paket soal (${filteredExamsData.length} total rombel) dari ${allExamsData.length} jadwal ujian`;
 }
 
-async function toggleExamStatus(id, newStatus) {
+// Mendukung update status 1 ID maupun array ID sekaligus
+async function toggleExamStatus(ids, newStatus) {
     const client = getSupabase();
     if (!client) return;
-    await client.from('exams').update({ is_active: newStatus }).eq('id', parseInt(id, 10));
+    const idList = Array.isArray(ids) ? ids.map(id => parseInt(id, 10)) : [parseInt(ids, 10)];
+    await client.from('exams').update({ is_active: newStatus }).in('id', idList);
     fetchExams();
 }
 
-async function deleteExam(id) {
-    showModernConfirm('Apakah Anda yakin ingin menghapus tautan soal ini?', 'Hapus Soal', async () => {
+// Mendukung hapus 1 ID maupun array ID (Hapus Semua dalam 1 grup)
+async function deleteExam(ids, isBulk = false) {
+    const idList = Array.isArray(ids) ? ids.map(id => parseInt(id, 10)) : [parseInt(ids, 10)];
+    const msg = isBulk 
+        ? `Apakah Anda yakin ingin menghapus tautan soal ini untuk seluruh ${idList.length} rombel sekaligus?`
+        : 'Apakah Anda yakin ingin menghapus tautan soal ini?';
+
+    showModernConfirm(msg, isBulk ? 'Hapus Massal Soal' : 'Hapus Soal', async () => {
         const client = getSupabase();
         if (!client) return;
-        await client.from('exams').delete().eq('id', parseInt(id, 10));
+        await client.from('exams').delete().in('id', idList);
         fetchExams();
     });
 }
