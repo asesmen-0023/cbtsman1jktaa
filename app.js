@@ -1,12 +1,18 @@
 // Pembantu instansiasi Supabase secara dinamis mengikuti server aktif
 const getSupabase = () => {
-    return typeof getActiveSupabaseClient === 'function' 
-        ? getActiveSupabaseClient() 
-        : (window.supabaseClient || (window.supabase ? window.supabase.createClient(
-            'https://ulroqkrnwzzrgkasrqit.supabase.co', 
-            'sb_publishable_DJm-HRJpia9X3CzOlBq61Q_Dqct-DPi',
-            { global: { headers: { 'x-cbt-version': '2' } } }
-        ) : null));
+    if (typeof getActiveSupabaseClient === 'function') {
+        const active = getActiveSupabaseClient();
+        if (active) return active;
+    }
+    if (window.supabaseClient) return window.supabaseClient;
+    if (window.supabase) {
+        return window.supabase.createClient(
+            'https://vztlpnuzoatqfufhahxc.supabase.co',
+            'sb_publishable_uQ5DBKhfiPupfH6U9Mat-A_T9Dvz67s',
+            { global: { headers: { 'x-cbt-version': '3' } } }
+        );
+    }
+    return null;
 };
 
 // Handler untuk berganti server dari dropdown UI
@@ -246,7 +252,7 @@ async function saveGlobalSettings(syncAll = false) {
                 const tempClient = window.supabase.createClient(
                     srv.url, 
                     srv.anonKey || srv.key || srv.apiKey,
-                    { global: { headers: { 'x-cbt-version': '2' } } }
+                    { global: { headers: { 'x-cbt-version': '3' } } }
                 );
                 const { error } = await tempClient.from('app_settings').upsert(payload);
                 return { key, name: srv.name || `Kelas ${key}`, error };
