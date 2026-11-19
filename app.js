@@ -2,7 +2,11 @@
 const getSupabase = () => {
     return typeof getActiveSupabaseClient === 'function' 
         ? getActiveSupabaseClient() 
-        : (window.supabaseClient || (window.supabase ? window.supabase.createClient('https://ulroqkrnwzzrgkasrqit.supabase.co', 'sb_publishable_DJm-HRJpia9X3CzOlBq61Q_Dqct-DPi') : null));
+        : (window.supabaseClient || (window.supabase ? window.supabase.createClient(
+            'https://ulroqkrnwzzrgkasrqit.supabase.co', 
+            'sb_publishable_DJm-HRJpia9X3CzOlBq61Q_Dqct-DPi',
+            { global: { headers: { 'x-cbt-version': '2' } } }
+        ) : null));
 };
 
 // Handler untuk berganti server dari dropdown UI
@@ -239,7 +243,11 @@ async function saveGlobalSettings(syncAll = false) {
         const results = await Promise.all(
             serverKeys.map(async (key) => {
                 const srv = SUPABASE_SERVERS[key];
-                const tempClient = window.supabase.createClient(srv.url, srv.anonKey || srv.key || srv.apiKey);
+                const tempClient = window.supabase.createClient(
+                    srv.url, 
+                    srv.anonKey || srv.key || srv.apiKey,
+                    { global: { headers: { 'x-cbt-version': '2' } } }
+                );
                 const { error } = await tempClient.from('app_settings').upsert(payload);
                 return { key, name: srv.name || `Kelas ${key}`, error };
             })
