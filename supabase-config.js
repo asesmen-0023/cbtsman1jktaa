@@ -2,18 +2,18 @@
 const SUPABASE_SERVERS = {
   "X": {
     name: "Kelas X",
-    url: "https://ulroqkrnwzzrgkasrqit.supabase.co",
-    anonKey: "sb_publishable_DJm-HRJpia9X3CzOlBq61Q_Dqct-DPi"
+    url: "https://vztlpnuzoatqfufhahxc.supabase.co",
+    anonKey: "sb_publishable_uQ5DBKhfiPupfH6U9Mat-A_T9Dvz67s"
   },
   "XI": {
     name: "Kelas XI",
-    url: "https://oypvpmhvkqhuhamjpjnu.supabase.co",
-    anonKey: "sb_publishable_H1n_goBAP5xaUrso_sAoWA_F491hDVE"
+    url = "https://ddarscvwzzfosjrvcxfj.supabase.co",
+    anonKey = "sb_publishable_E2tTQ18Vv9Dhlh1vGWBsSw_r9beO-7h"
   },
   "XII": {
     name: "Kelas XII",
-    url: "https://uqxzhrdmpplnlfwvlkag.supabase.co",
-    anonKey: "sb_publishable_pXrBRuXMyM65VUv_jIC7HQ_hza_4hTJ"
+    url = "https://vgatmagwhgwvqxsnlwmw.supabase.co",
+    anonKey = "sb_publishable_5L8wMYxeuVkO-bXqeoOCaQ_oxQfRzHF"
   }
 };
 
