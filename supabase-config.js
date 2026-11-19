@@ -27,7 +27,11 @@ function getActiveSupabaseClient() {
   
   if (!window.supabaseClient || window.supabaseClient._currentUrl !== config.url) {
     if (window.supabase) {
-      window.supabaseClient = window.supabase.createClient(config.url, config.anonKey);
+      window.supabaseClient = window.supabase.createClient(config.url, config.anonKey, {
+        global: {
+          headers: { 'x-cbt-version': '2' }
+        }
+      });
       window.supabaseClient._currentUrl = config.url;
     } else {
       console.error('SDK Supabase belum terload dari CDN.');
